@@ -1,6 +1,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   Controls,
   MiniMap,
@@ -14,7 +15,7 @@ import ReactFlow, {
   ConnectionLineType,
   Panel,
 } from '@xyflow/react';
-import 'reactflow/dist/style.css';
+import '@xyflow/react/dist/style.css';
 
 import NodePanel from '@/components/NodePanel';
 import ConfigPanel from '@/components/ConfigPanel';

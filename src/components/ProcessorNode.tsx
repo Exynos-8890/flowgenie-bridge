@@ -3,8 +3,9 @@ import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
 interface ProcessorNodeData {
-  label: string;
-  type: string;
+  label?: string;
+  type?: string;
+  prompt?: string;
 }
 
 const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) => {
@@ -12,7 +13,7 @@ const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) =>
     <div className={`p-3 min-w-[150px] flowsmith-processor animate-fade-in ${selected ? 'selected' : ''}`}>
       <div className="flex items-center justify-center">
         <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-          {data.type || 'Processor'}
+          {data?.type || 'Processor'}
         </div>
       </div>
       

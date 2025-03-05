@@ -3,16 +3,16 @@ import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
 interface TextNodeData {
-  label: string;
-  content: string;
+  label?: string;
+  content?: string;
 }
 
 const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
   return (
     <div className={`p-4 min-w-[200px] max-w-[300px] flowsmith-node animate-fade-in ${selected ? 'selected' : ''}`}>
-      <div className="font-medium text-sm text-gray-700 mb-2 truncate">{data.label || 'Untitled Node'}</div>
+      <div className="font-medium text-sm text-gray-700 mb-2 truncate">{data?.label || 'Untitled Node'}</div>
       <div className="text-xs text-gray-500 truncate max-h-[60px] overflow-hidden">
-        {data.content || 'No content'}
+        {data?.content || 'No content'}
       </div>
       
       <Handle
