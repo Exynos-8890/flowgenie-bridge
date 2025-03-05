@@ -2,7 +2,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
-// Define the data structure for text nodes
 interface TextNodeData {
   label?: string;
   content?: string;

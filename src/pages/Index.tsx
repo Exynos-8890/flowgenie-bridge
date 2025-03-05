@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
@@ -14,7 +13,6 @@ import {
   addEdge,
   ConnectionLineType,
   Panel,
-  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -32,7 +30,7 @@ import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 // Define node types with proper TypeScript typing
-const nodeTypes: NodeTypes = {
+const nodeTypes = {
   text: TextNode,
   processor: ProcessorNode,
 };
@@ -65,31 +63,26 @@ const Flowsmith = () => {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
 
-  // Handle node selection
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     setSelectedEdge(null);
   }, []);
 
-  // Handle edge selection
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
     setSelectedNode(null);
   }, []);
 
-  // Handle click on empty canvas
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
     setSelectedEdge(null);
   }, []);
 
-  // Handle drag over for node creation
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // Handle drop for node creation
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -99,7 +92,6 @@ const Flowsmith = () => {
       const type = event.dataTransfer.getData('application/reactflow');
       if (!type) return;
 
-      // Get the position where the node was dropped
       const position = reactFlowInstance.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
@@ -119,24 +111,18 @@ const Flowsmith = () => {
     [reactFlowInstance, setNodes]
   );
 
-  // Handle node dragging start
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  // Handle connection creation
   const onConnect = useCallback(
     (params: Connection) => {
-      // Only allow connections:
-      // 1. From text nodes to processor nodes
-      // 2. From processor nodes to text nodes
       const sourceNode = nodes.find(node => node.id === params.source);
       const targetNode = nodes.find(node => node.id === params.target);
       
       if (!sourceNode || !targetNode) return;
       
-      // Check valid connections
       const isValidConnection = 
         (sourceNode.type === 'text' && targetNode.type === 'processor') ||
         (sourceNode.type === 'processor' && targetNode.type === 'text');
@@ -155,7 +141,6 @@ const Flowsmith = () => {
     [nodes, setEdges]
   );
 
-  // Update node data
   const handleUpdateNode = useCallback(
     (nodeId: string, data: any) => {
       setNodes((nds) =>
@@ -175,7 +160,6 @@ const Flowsmith = () => {
     [setNodes]
   );
 
-  // Delete node
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       setNodes((nds) => nds.filter((node) => node.id !== nodeId));
@@ -190,7 +174,6 @@ const Flowsmith = () => {
     [setNodes, setEdges]
   );
 
-  // Delete edge
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
@@ -204,26 +187,20 @@ const Flowsmith = () => {
     [setEdges]
   );
 
-  // Execute processor
   const handleExecuteProcessor = useCallback(
     async (processorId: string) => {
       try {
-        // Show processing toast
         toast({
           title: "Processor Running",
           description: "Processing your data...",
         });
         
-        // Simulate processing delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Execute the processor
         const updatedNodes = await executeProcessor(nodes, edges, processorId);
         
-        // Update nodes
         setNodes(updatedNodes);
         
-        // Show success toast
         toast({
           title: "Processing Complete",
           description: "Your data has been successfully processed.",
@@ -231,7 +208,6 @@ const Flowsmith = () => {
       } catch (error) {
         console.error('Error executing processor:', error);
         
-        // Show error toast
         toast({
           title: "Processing Failed",
           description: error instanceof Error ? error.message : "An unknown error occurred",
@@ -244,12 +220,10 @@ const Flowsmith = () => {
 
   return (
     <div className="w-full h-screen flex flex-col overflow-hidden">
-      {/* Top header */}
       <header className="h-14 p-4 flex items-center justify-center border-b glass-panel">
         <h1 className="text-xl font-medium text-gray-800">Flowsmith</h1>
       </header>
       
-      {/* Main content */}
       <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
         <div className="w-full h-full" ref={reactFlowWrapper}>
           <ReactFlow
@@ -287,12 +261,10 @@ const Flowsmith = () => {
               }}
             />
             
-            {/* Left panel for node types */}
             <Panel position="top-left" className="m-4">
               <NodePanel onDragStart={onDragStart} />
             </Panel>
             
-            {/* Right panel for node configuration */}
             <Panel position="top-right" className="m-4">
               <ConfigPanel
                 selectedNode={selectedNode}

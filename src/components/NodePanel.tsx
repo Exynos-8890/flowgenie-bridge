@@ -11,12 +11,11 @@ interface NodeTypeProps {
 const NodeType: React.FC<NodeTypeProps> = ({ type, label, onDragStart }) => {
   return (
     <div
-      className="p-4 my-2 glass-panel rounded-lg cursor-grab hover:bg-opacity-90 active:cursor-grabbing animate-fade-in"
+      className="p-2 my-1 glass-panel rounded-lg cursor-grab hover:bg-opacity-90 active:cursor-grabbing animate-fade-in"
       draggable
       onDragStart={(event) => onDragStart(event, type)}
     >
-      <div className="font-medium text-sm mb-1">{label}</div>
-      <div className="text-xs text-gray-500">拖拽到画布使用</div>
+      <div className="font-medium text-sm">{label}</div>
     </div>
   );
 };
@@ -29,8 +28,8 @@ const NodePanel: React.FC<NodePanelProps> = ({ onDragStart }) => {
   const isMobile = useIsMobile();
   
   return (
-    <div className={`glass-panel p-4 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[240px]'} animate-slide-in-left`}>
-      <h3 className="font-medium text-sm mb-4 text-gray-700">可用节点</h3>
+    <div className={`glass-panel p-2 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[160px]'} animate-slide-in-left`}>
+      <div className="text-xs text-gray-500 mb-2">拖拽到画布使用</div>
       
       <NodeType
         type="text"
