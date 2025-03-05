@@ -2,6 +2,7 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
+// Define the data structure for processor nodes
 interface ProcessorNodeData {
   label?: string;
   type?: string;

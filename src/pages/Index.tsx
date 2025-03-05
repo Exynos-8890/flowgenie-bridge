@@ -14,6 +14,7 @@ import {
   addEdge,
   ConnectionLineType,
   Panel,
+  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -30,7 +31,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-const nodeTypes = {
+// Define node types with proper TypeScript typing
+const nodeTypes: NodeTypes = {
   text: TextNode,
   processor: ProcessorNode,
 };
