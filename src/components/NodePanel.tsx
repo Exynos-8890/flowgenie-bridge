@@ -29,17 +29,17 @@ const NodePanel: React.FC<NodePanelProps> = ({ onDragStart }) => {
   
   return (
     <div className={`glass-panel p-2 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[160px]'} animate-slide-in-left`}>
-      <div className="text-xs text-gray-500 mb-2">拖拽到画布使用</div>
+      <div className="text-xs text-gray-500 mb-2">drag nodes to the map to create it</div>
       
       <NodeType
         type="text"
-        label="文本节点"
+        label="text node"
         onDragStart={onDragStart}
       />
       
       <NodeType
         type="processor"
-        label="处理器"
+        label="processor"
         onDragStart={onDragStart}
       />
     </div>
