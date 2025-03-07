@@ -245,7 +245,7 @@ const Flowsmith = () => {
             fitView
             className="bg-gray-50"
           >
-            <Background color="#cbd5e1" size={1.5} />
+            <Background variant="dots" gap={12} size={1} color="#cbd5e1" />
             <Controls className="m-2" />
             <MiniMap
               className="m-2"

@@ -3,9 +3,7 @@ import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
 interface ProcessorNodeData {
-  label?: string;
   type?: string;
-  prompt?: string;
 }
 
 const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) => {
