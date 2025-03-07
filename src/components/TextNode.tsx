@@ -2,15 +2,15 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
+// 修正类型定义
 interface TextNodeData {
   label?: string;
-  content?: string;
 }
 
-const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
+const TextNode = memo(({ data, selected }: NodeProps) => {
   return (
     <div className={`p-4 min-w-[200px] max-w-[300px] flowsmith-node animate-fade-in ${selected ? 'selected' : ''}`}>
-      <div className="font-medium text-sm text-gray-700 mb-2">
+      <div className="font-medium text-sm text-gray-700">
         {data?.label || 'Untitled Node'}
       </div>
       

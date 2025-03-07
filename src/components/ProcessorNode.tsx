@@ -2,13 +2,12 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
+// 修正类型定义
 interface ProcessorNodeData {
-  label?: string;
   type?: string;
-  prompt?: string;
 }
 
-const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) => {
+const ProcessorNode = memo(({ data, selected }: NodeProps) => {
   return (
     <div className={`p-3 min-w-[150px] flowsmith-processor animate-fade-in ${selected ? 'selected' : ''}`}>
       <div className="flex items-center justify-center">
