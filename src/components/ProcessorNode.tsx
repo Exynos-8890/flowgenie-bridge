@@ -2,11 +2,13 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
+// Define the data shape only, not the full node
 interface ProcessorNodeData {
   type?: string;
   prompt?: string;
 }
 
+// Use the NodeProps generic properly
 const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) => {
   return (
     <div className={`p-3 min-w-[150px] flowsmith-processor animate-fade-in ${selected ? 'selected' : ''}`}>

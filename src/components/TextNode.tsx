@@ -2,11 +2,13 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
+// Define the data shape only, not the full node
 interface TextNodeData {
   label?: string;
   content?: string;
 }
 
+// Use the NodeProps generic properly
 const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
   return (
     <div className={`p-4 min-w-[200px] max-w-[300px] flowsmith-node animate-fade-in ${selected ? 'selected' : ''}`}>

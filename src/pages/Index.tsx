@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
@@ -15,6 +14,7 @@ import {
   ConnectionLineType,
   Panel,
   BackgroundVariant,
+  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -32,8 +32,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-// 定义节点类型
-const nodeTypes = {
+// Define node types with proper typing
+const nodeTypes: NodeTypes = {
   text: TextNode,
   processor: ProcessorNode,
 };
@@ -70,7 +70,6 @@ const Flowsmith = () => {
   const [showFlowSelector, setShowFlowSelector] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // 加载流程
   const handleLoadFlow = useCallback(async (flowId: string) => {
     try {
       const flowData = await loadFlow(flowId);
@@ -92,7 +91,6 @@ const Flowsmith = () => {
     }
   }, [setNodes, setEdges]);
 
-  // 保存流程
   const handleSaveFlow = useCallback(async () => {
     if (!currentFlowId) {
       toast({
@@ -122,43 +120,36 @@ const Flowsmith = () => {
     }
   }, [currentFlowId, nodes, edges]);
 
-  // 创建新流程
   const handleNewFlow = useCallback(() => {
     setNodes(initialNodes);
     setEdges(initialEdges);
     setShowFlowSelector(false);
   }, [setNodes, setEdges]);
 
-  // 返回到流程选择界面
   const handleBackToFlows = useCallback(() => {
     setShowFlowSelector(true);
   }, []);
 
-  // 节点点击
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     setSelectedEdge(null);
   }, []);
 
-  // 连接点击
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
     setSelectedNode(null);
   }, []);
 
-  // 画布点击
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
     setSelectedEdge(null);
   }, []);
 
-  // 拖拽监听
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // 拖拽放置
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -187,13 +178,11 @@ const Flowsmith = () => {
     [reactFlowInstance, setNodes]
   );
 
-  // 拖拽开始
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  // 创建连接
   const onConnect = useCallback(
     (params: Connection) => {
       const sourceNode = nodes.find(node => node.id === params.source);
@@ -219,7 +208,6 @@ const Flowsmith = () => {
     [nodes, setEdges]
   );
 
-  // 更新节点
   const handleUpdateNode = useCallback(
     (nodeId: string, data: any) => {
       setNodes((nds) =>
@@ -239,7 +227,6 @@ const Flowsmith = () => {
     [setNodes]
   );
 
-  // 删除节点
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       setNodes((nds) => nds.filter((node) => node.id !== nodeId));
@@ -254,7 +241,6 @@ const Flowsmith = () => {
     [setNodes, setEdges]
   );
 
-  // 删除连接
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
@@ -268,7 +254,6 @@ const Flowsmith = () => {
     [setEdges]
   );
 
-  // 执行处理器
   const handleExecuteProcessor = useCallback(
     async (processorId: string) => {
       try {
@@ -298,7 +283,6 @@ const Flowsmith = () => {
     [nodes, edges, setNodes]
   );
 
-  // 自动保存
   useEffect(() => {
     if (currentFlowId && nodes.length > 0) {
       const timer = setTimeout(() => {
@@ -309,7 +293,6 @@ const Flowsmith = () => {
     }
   }, [currentFlowId, nodes, edges, handleSaveFlow]);
 
-  // 如果显示流程选择器，则渲染流程选择界面
   if (showFlowSelector) {
     return (
       <div className="w-full h-screen flex flex-col overflow-hidden">
@@ -364,7 +347,7 @@ const Flowsmith = () => {
             className="bg-gray-50"
           >
             <Background 
-              variant={BackgroundVariant.DOTS} 
+              variant={BackgroundVariant.Dots} 
               gap={12} 
               size={1} 
               color="#cbd5e1" 
@@ -412,3 +395,4 @@ const IndexPage = () => (
 );
 
 export default IndexPage;
+
