@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
+
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -13,6 +14,7 @@ import {
   addEdge,
   ConnectionLineType,
   Panel,
+  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -21,7 +23,8 @@ import ConfigPanel from '@/components/ConfigPanel';
 import TextNode from '@/components/TextNode';
 import ProcessorNode from '@/components/ProcessorNode';
 import CustomEdge from '@/components/CustomEdge';
-import { createTextNode, createProcessorNode, executeProcessor } from '@/lib/nodes';
+import FlowSelector from '@/components/FlowSelector';
+import { createTextNode, createProcessorNode, executeProcessor, saveFlow, loadFlow } from '@/lib/nodes';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import shadcn components
@@ -29,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-// Define node types with proper TypeScript typing
+// 定义节点类型
 const nodeTypes = {
   text: TextNode,
   processor: ProcessorNode,
@@ -62,27 +65,100 @@ const Flowsmith = () => {
   
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
+  const [showFlowSelector, setShowFlowSelector] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  // 加载流程
+  const handleLoadFlow = useCallback(async (flowId: string) => {
+    try {
+      const flowData = await loadFlow(flowId);
+      setNodes(flowData.nodes);
+      setEdges(flowData.edges);
+      setCurrentFlowId(flowId);
+      setShowFlowSelector(false);
+      
+      toast({
+        title: '加载成功',
+        description: '流程已加载',
+      });
+    } catch (error) {
+      toast({
+        title: '加载失败',
+        description: '无法加载流程，请稍后再试',
+        variant: 'destructive',
+      });
+    }
+  }, [setNodes, setEdges]);
+
+  // 保存流程
+  const handleSaveFlow = useCallback(async () => {
+    if (!currentFlowId) {
+      toast({
+        title: '无法保存',
+        description: '请先选择或创建一个流程',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await saveFlow(currentFlowId, nodes, edges);
+      
+      toast({
+        title: '保存成功',
+        description: '流程已保存',
+      });
+    } catch (error) {
+      toast({
+        title: '保存失败',
+        description: '无法保存流程，请稍后再试',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentFlowId, nodes, edges]);
+
+  // 创建新流程
+  const handleNewFlow = useCallback(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setShowFlowSelector(false);
+  }, [setNodes, setEdges]);
+
+  // 返回到流程选择界面
+  const handleBackToFlows = useCallback(() => {
+    setShowFlowSelector(true);
+  }, []);
+
+  // 节点点击
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
     setSelectedEdge(null);
   }, []);
 
+  // 连接点击
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
     setSelectedNode(null);
   }, []);
 
+  // 画布点击
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
     setSelectedEdge(null);
   }, []);
 
+  // 拖拽监听
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // 拖拽放置
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -111,11 +187,13 @@ const Flowsmith = () => {
     [reactFlowInstance, setNodes]
   );
 
+  // 拖拽开始
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
 
+  // 创建连接
   const onConnect = useCallback(
     (params: Connection) => {
       const sourceNode = nodes.find(node => node.id === params.source);
@@ -129,8 +207,8 @@ const Flowsmith = () => {
       
       if (!isValidConnection) {
         toast({
-          title: "Invalid Connection",
-          description: "Text nodes can only connect to processors, and processors can only connect to text nodes.",
+          title: "无效连接",
+          description: "文本节点只能连接到处理器，处理器只能连接到文本节点。",
           variant: "destructive",
         });
         return;
@@ -141,6 +219,7 @@ const Flowsmith = () => {
     [nodes, setEdges]
   );
 
+  // 更新节点
   const handleUpdateNode = useCallback(
     (nodeId: string, data: any) => {
       setNodes((nds) =>
@@ -153,13 +232,14 @@ const Flowsmith = () => {
       );
       
       toast({
-        title: "Changes Saved",
-        description: "Your node changes have been applied.",
+        title: "已保存",
+        description: "节点已更新",
       });
     },
     [setNodes]
   );
 
+  // 删除节点
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       setNodes((nds) => nds.filter((node) => node.id !== nodeId));
@@ -167,50 +247,50 @@ const Flowsmith = () => {
       setSelectedNode(null);
       
       toast({
-        title: "Node Deleted",
-        description: "The node and its connections have been removed.",
+        title: "已删除",
+        description: "节点及其连接已移除",
       });
     },
     [setNodes, setEdges]
   );
 
+  // 删除连接
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
       setSelectedEdge(null);
       
       toast({
-        title: "Connection Deleted",
-        description: "The connection has been removed.",
+        title: "已删除",
+        description: "连接已移除",
       });
     },
     [setEdges]
   );
 
+  // 执行处理器
   const handleExecuteProcessor = useCallback(
     async (processorId: string) => {
       try {
         toast({
-          title: "Processor Running",
-          description: "Processing your data...",
+          title: "处理中",
+          description: "正在处理数据...",
         });
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
         
         const updatedNodes = await executeProcessor(nodes, edges, processorId);
         
         setNodes(updatedNodes);
         
         toast({
-          title: "Processing Complete",
-          description: "Your data has been successfully processed.",
+          title: "处理完成",
+          description: "数据已成功处理",
         });
       } catch (error) {
-        console.error('Error executing processor:', error);
+        console.error('执行处理器失败:', error);
         
         toast({
-          title: "Processing Failed",
-          description: error instanceof Error ? error.message : "An unknown error occurred",
+          title: "处理失败",
+          description: error instanceof Error ? error.message : "发生未知错误",
           variant: "destructive",
         });
       }
@@ -218,10 +298,48 @@ const Flowsmith = () => {
     [nodes, edges, setNodes]
   );
 
+  // 自动保存
+  useEffect(() => {
+    if (currentFlowId && nodes.length > 0) {
+      const timer = setTimeout(() => {
+        handleSaveFlow();
+      }, 30000); // 30秒自动保存
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentFlowId, nodes, edges, handleSaveFlow]);
+
+  // 如果显示流程选择器，则渲染流程选择界面
+  if (showFlowSelector) {
+    return (
+      <div className="w-full h-screen flex flex-col overflow-hidden">
+        <header className="h-14 p-4 flex items-center justify-center border-b glass-panel">
+          <h1 className="text-xl font-medium text-gray-800">Flowsmith</h1>
+        </header>
+        
+        <div className="flex-1 p-8 overflow-auto">
+          <FlowSelector 
+            onSelect={handleLoadFlow}
+            onNewFlow={handleNewFlow}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-screen flex flex-col overflow-hidden">
-      <header className="h-14 p-4 flex items-center justify-center border-b glass-panel">
+      <header className="h-14 p-4 flex items-center justify-between border-b glass-panel">
+        <Button variant="ghost" onClick={handleBackToFlows}>
+          返回流程列表
+        </Button>
         <h1 className="text-xl font-medium text-gray-800">Flowsmith</h1>
+        <Button 
+          onClick={handleSaveFlow}
+          disabled={isSaving}
+        >
+          {isSaving ? '保存中...' : '保存流程'}
+        </Button>
       </header>
       
       <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
@@ -245,7 +363,12 @@ const Flowsmith = () => {
             fitView
             className="bg-gray-50"
           >
-            <Background variant="dots" gap={12} size={1} color="#cbd5e1" />
+            <Background 
+              variant={BackgroundVariant.DOTS} 
+              gap={12} 
+              size={1} 
+              color="#cbd5e1" 
+            />
             <Controls className="m-2" />
             <MiniMap
               className="m-2"

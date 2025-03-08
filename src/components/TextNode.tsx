@@ -4,6 +4,7 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 
 interface TextNodeData {
   label?: string;
+  content?: string;
 }
 
 const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
@@ -12,6 +13,12 @@ const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
       <div className="font-medium text-sm text-gray-700">
         {data?.label || 'Untitled Node'}
       </div>
+      
+      {data?.content && (
+        <div className="mt-2 text-xs text-gray-600 max-h-[150px] overflow-y-auto">
+          {data.content}
+        </div>
+      )}
       
       <Handle
         type="target"
