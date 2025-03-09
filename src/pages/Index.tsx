@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-// Define node types with proper typing
+// 正确定义节点类型
 const nodeTypes: NodeTypes = {
   text: TextNode,
   processor: ProcessorNode,
@@ -83,6 +83,7 @@ const Flowsmith = () => {
         description: '流程已加载',
       });
     } catch (error) {
+      console.error('加载流程错误:', error);
       toast({
         title: '加载失败',
         description: '无法加载流程，请稍后再试',
@@ -110,6 +111,7 @@ const Flowsmith = () => {
         description: '流程已保存',
       });
     } catch (error) {
+      console.error('保存流程错误:', error);
       toast({
         title: '保存失败',
         description: '无法保存流程，请稍后再试',
@@ -395,4 +397,3 @@ const IndexPage = () => (
 );
 
 export default IndexPage;
-

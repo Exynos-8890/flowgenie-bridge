@@ -2,13 +2,13 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
-// Define the data shape only, not the full node
+// 定义处理器节点的数据类型
 interface ProcessorNodeData {
   type?: string;
   prompt?: string;
 }
 
-// Use the NodeProps generic properly
+// 使用NodeProps泛型正确地定义组件
 const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) => {
   return (
     <div className={`p-3 min-w-[150px] flowsmith-processor animate-fade-in ${selected ? 'selected' : ''}`}>

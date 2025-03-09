@@ -2,13 +2,13 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 
-// Define the data shape only, not the full node
+// 定义文本节点的数据类型
 interface TextNodeData {
   label?: string;
   content?: string;
 }
 
-// Use the NodeProps generic properly
+// 使用NodeProps泛型正确地定义组件
 const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
   return (
     <div className={`p-4 min-w-[200px] max-w-[300px] flowsmith-node animate-fade-in ${selected ? 'selected' : ''}`}>
