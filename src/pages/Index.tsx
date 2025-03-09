@@ -337,7 +337,35 @@ const Flowsmith = () => {
         handleSelectFlow(flowId);
       }
     };
-    
+    const testConnection = async () => {
+        console.log('Testing Supabase connection...');
+        try {
+          const { data, error } = await supabase.from('flows').select('count', { count: 'exact' });
+          console.log('Supabase connection test result:', { data, error });
+          
+          if (error) {
+            toast({
+              title: "Supabase连接错误",
+              description: error.message,
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Supabase连接成功", 
+              description: `检测到 ${data?.count || 0} 条流程数据`,
+            });
+          }
+        } catch (e) {
+          console.error('Supabase connection test failed:', e);
+          toast({
+            title: "Supabase连接测试失败",
+            description: e.message,
+            variant: "destructive",
+          });
+        }
+      };
+      
+      testConnection(); 
     checkForFlowInUrl();
   }, []);
 
