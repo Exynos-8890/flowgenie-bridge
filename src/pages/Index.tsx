@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
+
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -15,9 +16,12 @@ import {
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/integrations/supabase/client';
 
 import NodePanel from '@/components/NodePanel';
 import ConfigPanel from '@/components/ConfigPanel';
+import FlowSelector from '@/components/FlowSelector';
 import TextNode from '@/components/TextNode';
 import ProcessorNode from '@/components/ProcessorNode';
 import CustomEdge from '@/components/CustomEdge';
@@ -62,6 +66,111 @@ const Flowsmith = () => {
   
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
+  const [showFlowSelector, setShowFlowSelector] = useState(false);
+
+  // Create a new flow
+  const handleNewFlow = async () => {
+    try {
+      // Reset the canvas
+      setNodes(initialNodes);
+      setEdges(initialEdges);
+      
+      // Create a new flow in the database
+      const { data, error } = await supabase
+        .from('flows')
+        .insert([{ nodes: initialNodes, edges: initialEdges }])
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setCurrentFlowId(data[0].id);
+        toast({
+          title: "New Flow Created",
+          description: "You're now working on a new flow",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating new flow:', error);
+      toast({
+        title: "Error Creating Flow",
+        description: error instanceof Error ? error.message : "Failed to create a new flow",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load a flow from the database
+  const handleSelectFlow = async (flowId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('id', flowId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setCurrentFlowId(data.id);
+        setNodes(data.nodes);
+        setEdges(data.edges);
+        
+        toast({
+          title: "Flow Loaded",
+          description: `"${data.name}" has been loaded`,
+        });
+        
+        // Close the flow selector after loading
+        setShowFlowSelector(false);
+      }
+    } catch (error) {
+      console.error('Error loading flow:', error);
+      toast({
+        title: "Error Loading Flow",
+        description: error instanceof Error ? error.message : "Failed to load the selected flow",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Save the current flow to the database
+  const handleSaveFlow = async () => {
+    if (!currentFlowId) {
+      toast({
+        title: "No Flow Selected",
+        description: "Please create a new flow or select an existing one",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('flows')
+        .update({ 
+          nodes: nodes,
+          edges: edges,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentFlowId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Flow Saved",
+        description: "Your flow has been saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving flow:', error);
+      toast({
+        title: "Error Saving Flow",
+        description: error instanceof Error ? error.message : "Failed to save the flow",
+        variant: "destructive",
+      });
+    }
+  };
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -218,10 +327,47 @@ const Flowsmith = () => {
     [nodes, edges, setNodes]
   );
 
+  // Check for a flow ID in the URL when the component mounts
+  useEffect(() => {
+    const checkForFlowInUrl = async () => {
+      const url = new URL(window.location.href);
+      const flowId = url.searchParams.get('flowId');
+      
+      if (flowId) {
+        handleSelectFlow(flowId);
+      }
+    };
+    
+    checkForFlowInUrl();
+  }, []);
+
+  // Add flow ID to URL when a flow is selected
+  useEffect(() => {
+    if (currentFlowId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('flowId', currentFlowId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [currentFlowId]);
+
+  // Toggle flow selector panel
+  const toggleFlowSelector = () => {
+    setShowFlowSelector(prev => !prev);
+  };
+
   return (
     <div className="w-full h-screen flex flex-col overflow-hidden">
-      <header className="h-14 p-4 flex items-center justify-center border-b glass-panel">
+      <header className="h-14 p-4 flex items-center justify-between border-b glass-panel">
         <h1 className="text-xl font-medium text-gray-800">Flowsmith</h1>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={toggleFlowSelector}
+          >
+            {showFlowSelector ? 'Hide Flows' : 'My Flows'}
+          </Button>
+        </div>
       </header>
       
       <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
@@ -264,6 +410,17 @@ const Flowsmith = () => {
             <Panel position="top-left" className="m-4">
               <NodePanel onDragStart={onDragStart} />
             </Panel>
+            
+            {showFlowSelector && (
+              <Panel position="top-center" className="m-4">
+                <FlowSelector
+                  currentFlowId={currentFlowId}
+                  onNewFlow={handleNewFlow}
+                  onSelectFlow={handleSelectFlow}
+                  onSaveFlow={handleSaveFlow}
+                />
+              </Panel>
+            )}
             
             <Panel position="top-right" className="m-4">
               <ConfigPanel
