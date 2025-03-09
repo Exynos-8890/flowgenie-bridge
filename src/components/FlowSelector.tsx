@@ -15,6 +15,7 @@ interface Flow {
 
 interface FlowSelectorProps {
   currentFlowId: string | null;
+  userId: string | null; 
   onNewFlow: () => void;
   onSelectFlow: (flowId: string) => void;
   onSaveFlow: () => void;
@@ -22,6 +23,7 @@ interface FlowSelectorProps {
 
 const FlowSelector: React.FC<FlowSelectorProps> = ({
   currentFlowId,
+  userId,
   onNewFlow,
   onSelectFlow,
   onSaveFlow,
@@ -32,14 +34,16 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   const [flowName, setFlowName] = useState('');
 
   // Fetch flows from Supabase
-  const fetchFlows = async () => {
+    const fetchFlows = async () => {
+      if (!userId) return
     try {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('flows')
         .select('id, name, created_at')
-        .order('created_at', { ascending: false });
-
+        .order('created_at', { ascending: false })
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
       if (error) {
         throw error;
       }
@@ -106,7 +110,7 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   // Load flows on component mount
   useEffect(() => {
     fetchFlows();
-  }, []);
+  }, [userId]);
 
   // Update flow name input when a new flow is selected
   useEffect(() => {

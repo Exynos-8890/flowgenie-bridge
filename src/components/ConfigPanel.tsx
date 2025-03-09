@@ -135,11 +135,12 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
   if (!selectedNode && !selectedEdge) {
     return (
-      <div className={`glass-panel p-6 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-right flex items-center justify-center`}>
-        <div className="text-center text-gray-500">
-          <p className="text-sm">Select a node or connection to configure</p>
-        </div>
-      </div>
+    //   <div className={`glass-panel p-6 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-right flex items-center justify-center`}>
+    //     <div className="text-center text-gray-500">
+    //       <p className="text-sm">Select a node or connection to configure</p>
+    //     </div>
+        //   </div>
+        null
     );
   }
 

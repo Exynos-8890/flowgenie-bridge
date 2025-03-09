@@ -84,7 +84,7 @@ const Flowsmith = () => {
           nodes: JSON.stringify(initialNodes),
           edges: JSON.stringify(initialEdges),
           user_id: userId, // 添加这一行
-    name: "New Flow" // 给流程一个默认名称
+          name: "New Flow" // 给流程一个默认名称
         })
         .select();
       //
@@ -107,51 +107,52 @@ const Flowsmith = () => {
     }
   };
 
-  const handleSelectFlow = async (flowId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('flows')
-        .select('*')
-        .eq('id', flowId)
-        .eq('user_id', userId)  
-        .single();
+  const handleSelectFlow = useCallback(async (flowId: string) => {
+  try {
+    console.log('Selecting flow:', flowId);
+    const { data, error } = await supabase
+      .from('flows')
+      .select('*')
+      .eq('id', flowId)
+      .eq('user_id', userId)  
+      .single();
+    
+    if (error) throw error;
+    
+    if (data) {
+      setCurrentFlowId(data.id);
       
-      if (error) throw error;
-      
-      if (data) {
-        setCurrentFlowId(data.id);
+      try {
+        const parsedNodes = JSON.parse(data.nodes as string);
+        const parsedEdges = JSON.parse(data.edges as string);
         
-        try {
-          const parsedNodes = JSON.parse(data.nodes as string);
-          const parsedEdges = JSON.parse(data.edges as string);
-          
-          setNodes(parsedNodes);
-          setEdges(parsedEdges);
-          
-          toast({
-            title: "Flow Loaded",
-            description: `"${data.name}" has been loaded`,
-          });
-        } catch (parseError) {
-          console.error('Error parsing flow data:', parseError);
-          toast({
-            title: "Error Loading Flow",
-            description: "Invalid flow data format",
-            variant: "destructive",
-          });
-        }
+        setNodes(parsedNodes);
+        setEdges(parsedEdges);
         
-        setShowFlowSelector(false);
+        toast({
+          title: "Flow Loaded",
+          description: `"${data.name}" has been loaded`,
+        });
+      } catch (parseError) {
+        console.error('Error parsing flow data:', parseError);
+        toast({
+          title: "Error Loading Flow",
+          description: "Invalid flow data format",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error('Error loading flow:', error);
-      toast({
-        title: "Error Loading Flow",
-        description: error instanceof Error ? error.message : "Failed to load the selected flow",
-        variant: "destructive",
-      });
+      
+      setShowFlowSelector(false);
     }
-  };
+  } catch (error) {
+    console.error('Error loading flow:', error);
+    toast({
+      title: "Error Loading Flow",
+      description: error instanceof Error ? error.message : "Failed to load the selected flow",
+      variant: "destructive",
+    });
+  }
+}, [userId, setNodes, setEdges, toast]);
 
   const handleSaveFlow = async () => {
     if (!currentFlowId) {
@@ -344,46 +345,116 @@ const Flowsmith = () => {
     [nodes, edges, setNodes]
   );
 
-  useEffect(() => {
-    const fetchUserFlows = async () => {
+//   useEffect(() => {
+//     const fetchUserFlows = async () => {
+//       if (!userId) return;
+      
+//       try {
+//         const { data, error } = await supabase
+//           .from('flows')
+//           .select('*')
+//           .eq('user_id', userId)  
+//           .order('updated_at', { ascending: false })
+//           .limit(1);
+        
+//         if (error) throw error;
+        
+//         if (data && data.length > 0) {
+//           handleSelectFlow(data[0].id);
+//         } else {
+//           handleNewFlow();
+//         }
+//       } catch (error) {
+//         console.error('Error fetching user flows:', error);
+//       }
+//     };
+    
+//     fetchUserFlows();
+//   }, [userId]);
+
+//   useEffect(() => {
+//     const checkForFlowInUrl = async () => {
+//       const url = new URL(window.location.href);
+//       const flowId = url.searchParams.get('flowId');
+      
+//       if (flowId) {
+//         handleSelectFlow(flowId);
+//       }
+//     };
+    
+//     checkForFlowInUrl();
+//   }, [userId]);  //
+
+useEffect(() => {
+    const initFlows = async () => {
       if (!userId) return;
       
       try {
+        // 1. 先检查 URL 中是否指定了流程
+        const url = new URL(window.location.href);
+        const flowIdFromUrl = url.searchParams.get('flowId');
+        
+        if (flowIdFromUrl) {
+          console.log('Loading flow from URL:', flowIdFromUrl);
+          
+          // 尝试加载 URL 指定的流程
+          const { data, error } = await supabase
+            .from('flows')
+            .select('*')
+            .eq('id', flowIdFromUrl)
+            .eq('user_id', userId)
+            .single();
+            
+          if (!error && data) {
+            // URL 流程加载成功
+            console.log('Successfully loaded flow from URL');
+            setCurrentFlowId(data.id);
+            
+            try {
+              const parsedNodes = JSON.parse(data.nodes as string);
+              const parsedEdges = JSON.parse(data.edges as string);
+              
+              setNodes(parsedNodes);
+              setEdges(parsedEdges);
+              
+              return; // 成功加载后退出函数
+            } catch (parseError) {
+              console.error('Error parsing flow data:', parseError);
+            }
+          }
+        }
+        
+        // 2. 如果 URL 没有流程或加载失败，加载用户最近的流程
+        console.log('Loading most recent flow');
         const { data, error } = await supabase
           .from('flows')
           .select('*')
-          .eq('user_id', userId)  
+          .eq('user_id', userId)
           .order('updated_at', { ascending: false })
           .limit(1);
         
         if (error) throw error;
         
         if (data && data.length > 0) {
-          handleSelectFlow(data[0].id);
+          console.log('Found recent flow:', data[0].id);
+          await handleSelectFlow(data[0].id);
         } else {
-          handleNewFlow();
+          console.log('No flows found, creating new flow');
+          await handleNewFlow();
         }
       } catch (error) {
-        console.error('Error fetching user flows:', error);
+        console.error('Error initializing flows:', error);
+        toast({
+          title: "Error Loading Flows",
+          description: "Failed to load your flows. Please try again.",
+          variant: "destructive",
+        });
       }
     };
     
-    fetchUserFlows();
+    initFlows();
   }, [userId]);
-
-  useEffect(() => {
-    const checkForFlowInUrl = async () => {
-      const url = new URL(window.location.href);
-      const flowId = url.searchParams.get('flowId');
-      
-      if (flowId) {
-        handleSelectFlow(flowId);
-      }
-    };
     
-    checkForFlowInUrl();
-  }, [userId]);
-
   useEffect(() => {
     if (currentFlowId) {
       const url = new URL(window.location.href);
@@ -463,6 +534,7 @@ const Flowsmith = () => {
               <Panel position="top-center" className="m-4">
                 <FlowSelector
                   currentFlowId={currentFlowId}
+                  userId={userId}
                   onNewFlow={handleNewFlow}
                   onSelectFlow={handleSelectFlow}
                   onSaveFlow={handleSaveFlow}
