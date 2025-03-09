@@ -35,7 +35,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-// Define node types with proper TypeScript typing
 const nodeTypes: any = {
   text: TextNode,
   processor: ProcessorNode,
@@ -74,14 +73,11 @@ const Flowsmith = () => {
   const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
   const [showFlowSelector, setShowFlowSelector] = useState(false);
 
-  // Create a new flow
   const handleNewFlow = async () => {
     try {
-      // Reset the canvas
       setNodes(initialNodes);
       setEdges(initialEdges);
       
-      // Create a new flow in the database
       const { data, error } = await supabase
         .from('flows')
         .insert({
@@ -111,7 +107,6 @@ const Flowsmith = () => {
     }
   };
 
-  // Load a flow from the database
   const handleSelectFlow = async (flowId: string) => {
     try {
       const { data, error } = await supabase
@@ -126,7 +121,6 @@ const Flowsmith = () => {
       if (data) {
         setCurrentFlowId(data.id);
         
-        // Parse the JSON strings back to objects
         try {
           const parsedNodes = JSON.parse(data.nodes as string);
           const parsedEdges = JSON.parse(data.edges as string);
@@ -147,7 +141,6 @@ const Flowsmith = () => {
           });
         }
         
-        // Close the flow selector after loading
         setShowFlowSelector(false);
       }
     } catch (error) {
@@ -160,7 +153,6 @@ const Flowsmith = () => {
     }
   };
 
-  // Save the current flow to the database
   const handleSaveFlow = async () => {
     if (!currentFlowId) {
       toast({
@@ -352,7 +344,6 @@ const Flowsmith = () => {
     [nodes, edges, setNodes]
   );
 
-  // Load user's flows when the component mounts or userId changes
   useEffect(() => {
     const fetchUserFlows = async () => {
       if (!userId) return;
@@ -370,7 +361,6 @@ const Flowsmith = () => {
         if (data && data.length > 0) {
           handleSelectFlow(data[0].id);
         } else {
-          // If user has no flows, create a new one
           handleNewFlow();
         }
       } catch (error) {
@@ -381,7 +371,6 @@ const Flowsmith = () => {
     fetchUserFlows();
   }, [userId]);
 
-  // Check for a flow ID in the URL when the component mounts
   useEffect(() => {
     const checkForFlowInUrl = async () => {
       const url = new URL(window.location.href);
@@ -395,7 +384,6 @@ const Flowsmith = () => {
     checkForFlowInUrl();
   }, [userId]);
 
-  // Add flow ID to URL when a flow is selected
   useEffect(() => {
     if (currentFlowId) {
       const url = new URL(window.location.href);
@@ -404,7 +392,6 @@ const Flowsmith = () => {
     }
   }, [currentFlowId]);
 
-  // Toggle flow selector panel
   const toggleFlowSelector = () => {
     setShowFlowSelector(prev => !prev);
   };
