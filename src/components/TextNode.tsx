@@ -9,7 +9,10 @@ interface TextNodeData {
 }
 
 // 使用NodeProps泛型正确地定义组件
-const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
+const TextNode = memo(({ data, selected }: NodeProps<{
+  label?: string;
+  content?: string;
+}>) => {
   return (
     <div className={`p-4 min-w-[200px] max-w-[300px] flowsmith-node animate-fade-in ${selected ? 'selected' : ''}`}>
       <div className="font-medium text-sm text-gray-700">

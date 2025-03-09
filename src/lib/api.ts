@@ -19,27 +19,61 @@ export interface FlowWithGraph extends Flow {
   edges: Edge[];
 }
 
-// 模拟API响应的函数，当后端不可用时使用
-const mockApiResponse = async (data: any, delay = 500) => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(data), delay);
-  });
+// 检查localStorage是否可用
+const isLocalStorageAvailable = () => {
+  try {
+    const testKey = "__test__";
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+// 确保获取本地流程
+const getLocalFlows = (): Flow[] => {
+  if (!isLocalStorageAvailable()) return [];
+  
+  try {
+    const storedFlows = localStorage.getItem('flowsmith_flows');
+    return storedFlows ? JSON.parse(storedFlows) : [];
+  } catch (e) {
+    console.error("Error getting local flows:", e);
+    return [];
+  }
+};
+
+// 保存本地流程
+const saveLocalFlows = (flows: Flow[]): void => {
+  if (!isLocalStorageAvailable()) return;
+  
+  try {
+    localStorage.setItem('flowsmith_flows', JSON.stringify(flows));
+  } catch (e) {
+    console.error("Error saving local flows:", e);
+  }
 };
 
 // 带失败回退的API调用函数
 const fetchWithFallback = async (url: string, options?: RequestInit) => {
   try {
+    console.log(`尝试调用API: ${url}`, options?.method || 'GET');
     const response = await fetch(url, options);
-    if (!response.ok) throw new Error(`API错误: ${response.status}`);
+    
+    if (!response.ok) {
+      console.error(`API请求失败: ${response.status}`, url);
+      throw new Error(`API错误: ${response.status}`);
+    }
+    
     return response.json();
   } catch (error) {
     console.error('API调用失败，使用本地存储回退', error);
     
     // 从localStorage获取数据或使用默认值
-    if (url.includes('/flows') && !url.includes('/save')) {
-      const storedFlows = localStorage.getItem('flowsmith_flows');
-      if (storedFlows) return JSON.parse(storedFlows);
-      return [];
+    if (url.includes('/flows') && !url.includes('/save') && !options?.method) {
+      // GET /flows - 获取所有流程
+      return getLocalFlows();
     }
     
     // 创建新flow时生成本地ID
@@ -55,19 +89,18 @@ const fetchWithFallback = async (url: string, options?: RequestInit) => {
       };
       
       // 保存到localStorage
-      const storedFlows = localStorage.getItem('flowsmith_flows');
-      const flows = storedFlows ? JSON.parse(storedFlows) : [];
+      const flows = getLocalFlows();
       flows.push(flow);
-      localStorage.setItem('flowsmith_flows', JSON.stringify(flows));
+      saveLocalFlows(flows);
       
+      console.log("已创建本地流程:", flow);
       return flow;
     }
     
     // 获取单个flow详情
-    if (url.includes('/flows/') && !url.includes('/save')) {
+    if (url.includes('/flows/') && !url.includes('/save') && !options?.method) {
       const flowId = url.split('/flows/')[1];
-      const storedFlows = localStorage.getItem('flowsmith_flows');
-      const flows = storedFlows ? JSON.parse(storedFlows) : [];
+      const flows = getLocalFlows();
       const flow = flows.find((f: Flow) => f.id === flowId);
       
       if (flow) {
@@ -81,6 +114,8 @@ const fetchWithFallback = async (url: string, options?: RequestInit) => {
           edges: storedEdges ? JSON.parse(storedEdges) : []
         };
       }
+      
+      throw new Error(`流程 ${flowId} 未找到`);
     }
     
     // 保存流程图
@@ -92,38 +127,39 @@ const fetchWithFallback = async (url: string, options?: RequestInit) => {
       localStorage.setItem(`flowsmith_edges_${flowId}`, JSON.stringify(edges));
       
       // 更新flow的updatedAt
-      const storedFlows = localStorage.getItem('flowsmith_flows');
-      if (storedFlows) {
-        const flows = JSON.parse(storedFlows);
-        const flowIndex = flows.findIndex((f: Flow) => f.id === flowId);
-        if (flowIndex !== -1) {
-          flows[flowIndex].updatedAt = new Date().toISOString();
-          localStorage.setItem('flowsmith_flows', JSON.stringify(flows));
-        }
+      const flows = getLocalFlows();
+      const flowIndex = flows.findIndex((f: Flow) => f.id === flowId);
+      
+      if (flowIndex !== -1) {
+        flows[flowIndex].updatedAt = new Date().toISOString();
+        saveLocalFlows(flows);
       }
       
-      return { message: '流程图已保存' };
+      console.log(`已保存流程 ${flowId} 的数据`);
+      return { 
+        message: '流程图已保存',
+        nodes,
+        edges
+      };
     }
     
     // 删除流程
     if (options?.method === 'DELETE' && url.includes('/flows/')) {
       const flowId = url.split('/flows/')[1];
-      const storedFlows = localStorage.getItem('flowsmith_flows');
+      const flows = getLocalFlows();
+      const newFlows = flows.filter((f: Flow) => f.id !== flowId);
       
-      if (storedFlows) {
-        let flows = JSON.parse(storedFlows);
-        flows = flows.filter((f: Flow) => f.id !== flowId);
-        localStorage.setItem('flowsmith_flows', JSON.stringify(flows));
-        
-        // 删除相关节点和边
-        localStorage.removeItem(`flowsmith_nodes_${flowId}`);
-        localStorage.removeItem(`flowsmith_edges_${flowId}`);
-      }
+      saveLocalFlows(newFlows);
       
+      // 删除相关节点和边
+      localStorage.removeItem(`flowsmith_nodes_${flowId}`);
+      localStorage.removeItem(`flowsmith_edges_${flowId}`);
+      
+      console.log(`已删除流程 ${flowId}`);
       return null;
     }
     
-    return {};
+    throw error;
   }
 };
 
@@ -191,6 +227,7 @@ export const api = {
           body: JSON.stringify({ processorId, inputNodes, outputNodeId })
         });
       } catch (error) {
+        console.log("模拟处理器执行结果");
         // 模拟处理结果
         return {
           success: true,

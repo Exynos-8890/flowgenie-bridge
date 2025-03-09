@@ -14,7 +14,6 @@ import {
   ConnectionLineType,
   Panel,
   BackgroundVariant,
-  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -33,7 +32,7 @@ import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 // 正确定义节点类型
-const nodeTypes: NodeTypes = {
+const nodeTypes = {
   text: TextNode,
   processor: ProcessorNode,
 };
@@ -122,9 +121,10 @@ const Flowsmith = () => {
     }
   }, [currentFlowId, nodes, edges]);
 
-  const handleNewFlow = useCallback(() => {
+  const handleNewFlow = useCallback((flowId: string) => {
     setNodes(initialNodes);
     setEdges(initialEdges);
+    setCurrentFlowId(flowId);
     setShowFlowSelector(false);
   }, [setNodes, setEdges]);
 

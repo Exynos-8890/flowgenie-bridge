@@ -2,14 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { api, Flow } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 interface FlowSelectorProps {
   onSelect: (flowId: string) => void;
-  onNewFlow: () => void;
+  onNewFlow: (flowId: string) => void;
 }
 
 const FlowSelector: React.FC<FlowSelectorProps> = ({ onSelect, onNewFlow }) => {
@@ -18,15 +18,16 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({ onSelect, onNewFlow }) => {
   const [showNewFlowDialog, setShowNewFlowDialog] = useState(false);
   const [newFlowName, setNewFlowName] = useState('');
   const [newFlowDescription, setNewFlowDescription] = useState('');
-  const navigate = useNavigate();
 
   // 加载所有流程
   const loadFlows = async () => {
     try {
       setLoading(true);
       const flowsData = await api.flows.getAll();
-      setFlows(flowsData);
+      console.log("加载到的流程:", flowsData);
+      setFlows(flowsData || []);
     } catch (error) {
+      console.error("加载流程失败:", error);
       toast({
         title: '加载失败',
         description: '无法加载流程列表，请稍后再试',
@@ -54,20 +55,26 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({ onSelect, onNewFlow }) => {
         description: newFlowDescription,
       });
       
-      setFlows([...flows, newFlow]);
-      setShowNewFlowDialog(false);
-      setNewFlowName('');
-      setNewFlowDescription('');
+      console.log("创建的新流程:", newFlow);
       
-      toast({
-        title: '创建成功',
-        description: `流程 "${newFlow.name}" 已创建`,
-      });
-      
-      // 跳转到新流程
-      onSelect(newFlow.id);
-      onNewFlow();
+      if (newFlow && newFlow.id) {
+        setFlows(prev => [...prev, newFlow]);
+        setShowNewFlowDialog(false);
+        setNewFlowName('');
+        setNewFlowDescription('');
+        
+        toast({
+          title: '创建成功',
+          description: `流程 "${newFlow.name}" 已创建`,
+        });
+        
+        // 跳转到新流程
+        onNewFlow(newFlow.id);
+      } else {
+        throw new Error("创建的流程没有有效的ID");
+      }
     } catch (error) {
+      console.error("创建流程失败:", error);
       toast({
         title: '创建失败',
         description: '无法创建新流程，请稍后再试',
@@ -156,6 +163,9 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({ onSelect, onNewFlow }) => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>创建新流程</DialogTitle>
+            <DialogDescription>
+              添加一个新的流程到您的项目中
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
