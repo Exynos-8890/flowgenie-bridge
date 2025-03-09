@@ -86,10 +86,12 @@ const Flowsmith = () => {
         .from('flows')
         .insert({
           nodes: JSON.stringify(initialNodes),
-          edges: JSON.stringify(initialEdges)
+          edges: JSON.stringify(initialEdges),
+          user_id: userId, // 添加这一行
+    name: "New Flow" // 给流程一个默认名称
         })
         .select();
-      
+      //
       if (error) throw error;
       
       if (data && data.length > 0) {
@@ -116,6 +118,7 @@ const Flowsmith = () => {
         .from('flows')
         .select('*')
         .eq('id', flowId)
+        .eq('user_id', userId)  
         .single();
       
       if (error) throw error;
@@ -358,6 +361,7 @@ const Flowsmith = () => {
         const { data, error } = await supabase
           .from('flows')
           .select('*')
+          .eq('user_id', userId)  
           .order('updated_at', { ascending: false })
           .limit(1);
         
