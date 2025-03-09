@@ -59,7 +59,7 @@ const initialNodes: Node[] = [
 const initialEdges: Edge[] = [];
 
 const Flowsmith = () => {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const userId = session?.user?.id;
   
   const isMobile = useIsMobile();
@@ -411,7 +411,7 @@ const Flowsmith = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => useAuth().signOut()}
+            onClick={signOut}
           >
             登出
           </Button>
