@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
@@ -14,10 +13,13 @@ import {
   addEdge,
   ConnectionLineType,
   Panel,
+  BackgroundVariant,
+  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 import NodePanel from '@/components/NodePanel';
 import ConfigPanel from '@/components/ConfigPanel';
@@ -34,7 +36,7 @@ import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 // Define node types with proper TypeScript typing
-const nodeTypes = {
+const nodeTypes: any = {
   text: TextNode,
   processor: ProcessorNode,
 };
@@ -58,6 +60,9 @@ const initialNodes: Node[] = [
 const initialEdges: Edge[] = [];
 
 const Flowsmith = () => {
+  const { session } = useAuth();
+  const userId = session?.user?.id;
+  
   const isMobile = useIsMobile();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -79,7 +84,10 @@ const Flowsmith = () => {
       // Create a new flow in the database
       const { data, error } = await supabase
         .from('flows')
-        .insert([{ nodes: initialNodes, edges: initialEdges }])
+        .insert({
+          nodes: JSON.stringify(initialNodes),
+          edges: JSON.stringify(initialEdges)
+        })
         .select();
       
       if (error) throw error;
@@ -114,13 +122,27 @@ const Flowsmith = () => {
       
       if (data) {
         setCurrentFlowId(data.id);
-        setNodes(data.nodes);
-        setEdges(data.edges);
         
-        toast({
-          title: "Flow Loaded",
-          description: `"${data.name}" has been loaded`,
-        });
+        // Parse the JSON strings back to objects
+        try {
+          const parsedNodes = JSON.parse(data.nodes as string);
+          const parsedEdges = JSON.parse(data.edges as string);
+          
+          setNodes(parsedNodes);
+          setEdges(parsedEdges);
+          
+          toast({
+            title: "Flow Loaded",
+            description: `"${data.name}" has been loaded`,
+          });
+        } catch (parseError) {
+          console.error('Error parsing flow data:', parseError);
+          toast({
+            title: "Error Loading Flow",
+            description: "Invalid flow data format",
+            variant: "destructive",
+          });
+        }
         
         // Close the flow selector after loading
         setShowFlowSelector(false);
@@ -150,8 +172,8 @@ const Flowsmith = () => {
       const { error } = await supabase
         .from('flows')
         .update({ 
-          nodes: nodes,
-          edges: edges,
+          nodes: JSON.stringify(nodes),
+          edges: JSON.stringify(edges),
           updated_at: new Date().toISOString()
         })
         .eq('id', currentFlowId);
@@ -327,6 +349,34 @@ const Flowsmith = () => {
     [nodes, edges, setNodes]
   );
 
+  // Load user's flows when the component mounts or userId changes
+  useEffect(() => {
+    const fetchUserFlows = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('flows')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          handleSelectFlow(data[0].id);
+        } else {
+          // If user has no flows, create a new one
+          handleNewFlow();
+        }
+      } catch (error) {
+        console.error('Error fetching user flows:', error);
+      }
+    };
+    
+    fetchUserFlows();
+  }, [userId]);
+
   // Check for a flow ID in the URL when the component mounts
   useEffect(() => {
     const checkForFlowInUrl = async () => {
@@ -337,37 +387,9 @@ const Flowsmith = () => {
         handleSelectFlow(flowId);
       }
     };
-    const testConnection = async () => {
-        console.log('Testing Supabase connection...');
-        try {
-          const { data, error } = await supabase.from('flows').select('count', { count: 'exact' });
-          console.log('Supabase connection test result:', { data, error });
-          
-          if (error) {
-            toast({
-              title: "Supabase连接错误",
-              description: error.message,
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Supabase连接成功", 
-              description: `检测到 ${data?.count || 0} 条流程数据`,
-            });
-          }
-        } catch (e) {
-          console.error('Supabase connection test failed:', e);
-          toast({
-            title: "Supabase连接测试失败",
-            description: e.message,
-            variant: "destructive",
-          });
-        }
-      };
-      
-      testConnection(); 
+    
     checkForFlowInUrl();
-  }, []);
+  }, [userId]);
 
   // Add flow ID to URL when a flow is selected
   useEffect(() => {
@@ -394,6 +416,13 @@ const Flowsmith = () => {
             onClick={toggleFlowSelector}
           >
             {showFlowSelector ? 'Hide Flows' : 'My Flows'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => useAuth().signOut()}
+          >
+            登出
           </Button>
         </div>
       </header>

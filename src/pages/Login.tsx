@@ -1,17 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { User, KeyRound } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,18 +41,20 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // 模拟登录请求
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      // 这里可以添加实际的登录逻辑
-      // 假设登录成功
-      localStorage.setItem('isLoggedIn', 'true');
+      if (error) throw error;
+      
       toast({
         title: "登录成功",
         description: "欢迎回来！",
       });
       navigate('/');
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "登录失败",
         description: "请检查您的邮箱和密码",
@@ -113,12 +128,7 @@ const Login = () => {
             {isLoading ? '登录中...' : '登录'}
           </Button>
           
-          <div className="text-center text-sm">
-            <span className="text-gray-600">还没有账户? </span>
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-              注册
-            </a>
-          </div>
+          {/* Signup link removed as requested */}
         </form>
       </div>
     </div>
