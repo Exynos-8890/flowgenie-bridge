@@ -83,11 +83,11 @@ const Flowsmith = () => {
         .insert({
           nodes: JSON.stringify(initialNodes),
           edges: JSON.stringify(initialEdges),
-          user_id: userId, // 添加这一行
-    name: "New Flow" // 给流程一个默认名称
+          user_id: userId,
+          name: "New Flow"
         })
         .select();
-      //
+      
       if (error) throw error;
       
       if (data && data.length > 0) {
@@ -439,7 +439,7 @@ const Flowsmith = () => {
             fitView
             className="bg-gray-50"
           >
-            <Background variant="dots" gap={12} size={1} color="#cbd5e1" />
+            <Background variant={BackgroundVariant.Dots} gap={12} size={1} color="#cbd5e1" />
             <Controls className="m-2" />
             <MiniMap
               className="m-2"
@@ -485,6 +485,10 @@ const Flowsmith = () => {
       </div>
     </div>
   );
+};
+
+const toggleFlowSelector = () => {
+  setShowFlowSelector(prev => !prev);
 };
 
 const IndexPage = () => (

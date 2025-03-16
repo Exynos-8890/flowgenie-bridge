@@ -1,5 +1,6 @@
 
 import { Node, Edge, XYPosition, Connection } from '@xyflow/react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Generate a unique ID
 export const generateId = (): string => {
@@ -28,7 +29,7 @@ export const createProcessorNode = (position: XYPosition, data: any = {}): Node 
     position,
     data: {
       type: data.type || 'summary',
-      prompt: data.prompt || '',
+      prompt: data.prompt || 'Summarize the following text:\n\n{{input}}',
       ...data,
     },
   };
@@ -45,7 +46,7 @@ export const createEdge = (connection: Connection): Edge => {
   };
 };
 
-// Execute a processor (simulated)
+// Execute a processor (using OpenAI)
 export const executeProcessor = async (
   nodes: Node[],
   edges: Edge[],
@@ -69,6 +70,9 @@ export const executeProcessor = async (
     throw new Error('Input node not found');
   }
 
+  // Get input content
+  const inputContent = inputNode.data.content || '';
+  
   // Find the output node (connected to processor's right side)
   let outputEdge = edges.find(edge => edge.source === processorId);
   let outputNode = null;
@@ -106,18 +110,34 @@ export const executeProcessor = async (
     throw new Error('Output node not found and could not be created');
   }
 
-  // Simulate processing (in a real app, this would call an AI service)
-  // For now, just set the output to "Test Successful"
-  return nodes.map(node => {
-    if (node.id === outputNode?.id) {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          content: "Test Successful",
-        },
-      };
+  try {
+    // Call the process-with-gpt edge function
+    const { data, error } = await supabase.functions.invoke('process-with-gpt', {
+      body: {
+        content: inputContent,
+        promptTemplate: processorNode.data.prompt || 'Process this: {{input}}'
+      }
+    });
+
+    if (error) {
+      throw error;
     }
-    return node;
-  });
+
+    // Update the output node with the generated content
+    return nodes.map(node => {
+      if (node.id === outputNode?.id) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            content: data.result || "Error: No result returned",
+          },
+        };
+      }
+      return node;
+    });
+  } catch (error) {
+    console.error('Error calling process-with-gpt:', error);
+    throw new Error(`Failed to process: ${error.message || 'Unknown error'}`);
+  }
 };
