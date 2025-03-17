@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -17,24 +18,7 @@ serve(async (req) => {
     // Replace placeholders in the prompt template
     const prompt = promptTemplate.replace(/{{input}}/g, content);
     
-    // Make request to OpenAI API
-    // const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     model: 'gpt-3.5-turbo',
-    //     messages: [
-    //       { role: 'system', content: 'You are a helpful assistant that processes text based on instructions.' },
-    //       { role: 'user', content: prompt }
-    //     ],
-    //     temperature: 0.7,
-    //   }),
-    // });
-      
-    // make request to siliconflow
+    // Make request to Siliconflow API
     const options = {
         method: 'POST',
         headers: {
@@ -44,7 +28,7 @@ serve(async (req) => {
         body: JSON.stringify({
             model: "deepseek-ai/DeepSeek-V3",
             stream: false,
-            max_tokens: 512,
+            max_tokens: 4096,
             temperature: 0.7,
             top_p: 0.7,
             top_k: 50,
