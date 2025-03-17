@@ -129,7 +129,7 @@ export const executeProcessor = async (
     throw new Error('Output node not found and could not be created');
   }
 
-  const prompt = processorNode.data.prompt.replace('{{input}}', combinedContent);
+  const prompt = `${processorNode.data.prompt}\n\n${combinedContent}`;
   console.log('Processing with LLM:', { prompt});
   try {
     // Call the process-with-gpt edge function with the combined content
