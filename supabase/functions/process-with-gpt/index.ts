@@ -13,12 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { content, promptTemplate } = await req.json();
+    const requestBody = await req.json();
+    const { content } = requestBody;
     
-    // Replace placeholders in the prompt template
-    const prompt = promptTemplate.replace(/{{input}}/g, content);
-    
-    // Make request to Siliconflow API
     const options = {
         method: 'POST',
         headers: {

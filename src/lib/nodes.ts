@@ -46,7 +46,7 @@ export const createEdge = (connection: Connection): Edge => {
   };
 };
 
-// Execute a processor (using OpenAI)
+// Execute a processor (using Siliconflow API)
 export const executeProcessor = async (
   nodes: Node[],
   edges: Edge[],
@@ -58,22 +58,40 @@ export const executeProcessor = async (
     throw new Error('Invalid processor node');
   }
 
-  // Find the input node (connected to processor's left side)
-  const inputEdge = edges.find(edge => edge.target === processorId);
-  if (!inputEdge) {
-    throw new Error('Processor has no input node');
+  // Find all input nodes (connected to processor's left side)
+  const inputEdges = edges.filter(edge => edge.target === processorId);
+  if (inputEdges.length === 0) {
+    throw new Error('Processor has no input nodes');
   }
 
-  const inputNodeId = inputEdge.source;
-  const inputNode = nodes.find(node => node.id === inputNodeId);
-  if (!inputNode) {
-    throw new Error('Input node not found');
-  }
-
-  // Get input content
-  const inputContent = inputNode.data.content || '';
+  // Collect all input content from connected text nodes
+  const inputContents: Array<{ nodeId: string, label: string, content: string }> = [];
   
-  // Find the output node (connected to processor's right side)
+  for (const edge of inputEdges) {
+    const inputNodeId = edge.source;
+    const inputNode = nodes.find(node => node.id === inputNodeId);
+    
+    if (!inputNode) {
+      console.warn(`Input node ${inputNodeId} not found`);
+      continue;
+    }
+    
+    inputContents.push({
+      nodeId: inputNode.id,
+      label: inputNode.data.label || 'Untitled Node',
+      content: inputNode.data.content || '',
+    });
+  }
+  
+  // Construct the combined input content
+  let combinedContent = '';
+  
+  // Add each input node's content with its label as identifier
+  inputContents.forEach(input => {
+    combinedContent += `\n===== ${input.label} =====\n${input.content}\n`;
+  });
+  
+  // Find or create the output node (connected to processor's right side)
   let outputEdge = edges.find(edge => edge.source === processorId);
   let outputNode = null;
   
@@ -109,15 +127,14 @@ export const executeProcessor = async (
   if (!outputNode) {
     throw new Error('Output node not found and could not be created');
   }
-    //   在 console.log 中输出 inputContent
-    console.log(inputContent)
 
+  const prompt = `${processorNode.data.prompt}\n\n${combinedContent}`;
+  console.log('Processing with LLM:', { prompt});
   try {
-    // Call the process-with-gpt edge function
+    // Call the process-with-gpt edge function with the combined content
     const { data, error } = await supabase.functions.invoke('process-with-gpt', {
       body: {
-        content: inputContent,
-        promptTemplate: processorNode.data.prompt || 'Process this: {{input}}'
+        content: prompt,
       }
     });
 
