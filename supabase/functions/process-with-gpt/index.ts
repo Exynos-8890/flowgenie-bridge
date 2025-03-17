@@ -34,7 +34,7 @@ serve(async (req) => {
             stop: [],
             messages: [
                 {
-                    content: prompt,
+                    content: content,
                     role: "user"
                 }
             ]
