@@ -109,6 +109,8 @@ export const executeProcessor = async (
   if (!outputNode) {
     throw new Error('Output node not found and could not be created');
   }
+    //   在 console.log 中输出 inputContent
+    console.log(inputContent)
 
   try {
     // Call the process-with-gpt edge function
