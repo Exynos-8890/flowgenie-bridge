@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Plus, Save, FolderOpen } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plus, Save } from 'lucide-react';
 
 interface Flow {
   id: string;
   name: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface FlowSelectorProps {
@@ -27,24 +29,31 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   onSaveFlow,
 }) => {
   const isMobile = useIsMobile();
+  const { session } = useAuth();
   const [flows, setFlows] = useState<Flow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [flowName, setFlowName] = useState('');
 
-  // Fetch flows from Supabase
+  // Fetch flows from the edge function
   const fetchFlows = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('flows')
-        .select('id, name, created_at')
-        .order('created_at', { ascending: false });
+      
+      if (!session?.access_token) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { data, error } = await supabase.functions.invoke('get-user-flows', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
 
       if (error) {
         throw error;
       }
 
-      setFlows(data || []);
+      setFlows(data?.flows || []);
     } catch (error) {
       console.error('Error fetching flows:', error);
       toast({
@@ -78,6 +87,21 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
 
     try {
+      // First, check if the user has access to this flow
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('user_id')
+        .eq('id', currentFlowId)
+        .single();
+
+      if (flowError) {
+        throw flowError;
+      }
+
+      if (flowData.user_id !== session?.user?.id) {
+        throw new Error('You do not have permission to modify this flow');
+      }
+
       const { error } = await supabase
         .from('flows')
         .update({ name: flowName })
@@ -103,10 +127,12 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
-  // Load flows on component mount
+  // Load flows on component mount and when session changes
   useEffect(() => {
-    fetchFlows();
-  }, []);
+    if (session) {
+      fetchFlows();
+    }
+  }, [session]);
 
   // Update flow name input when a new flow is selected
   useEffect(() => {

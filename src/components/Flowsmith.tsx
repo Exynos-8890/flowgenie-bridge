@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
@@ -28,6 +27,7 @@ import { useFlowInteractions } from '@/hooks/use-flow-interactions';
 
 // Import shadcn components
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
 
 const nodeTypes = {
   text: TextNode,
@@ -115,35 +115,62 @@ const Flowsmith = () => {
       if (!userId) return;
       
       try {
-        const { data, error } = await supabase
-          .from('flows')
-          .select('*')
-          .eq('user_id', userId)  
-          .order('updated_at', { ascending: false })
-          .limit(1);
+        const { data, error } = await supabase.functions.invoke('get-user-flows', {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
         
         if (error) throw error;
         
-        if (data && data.length > 0) {
-          handleSelectFlow(data[0].id);
+        const flows = data?.flows || [];
+        
+        if (flows.length > 0) {
+          handleSelectFlow(flows[0].id);
         } else {
           handleNewFlow();
         }
       } catch (error) {
         console.error('Error fetching user flows:', error);
+        // If we can't fetch flows, create a new one
+        handleNewFlow();
       }
     };
     
     fetchUserFlows();
-  }, [userId, handleSelectFlow, handleNewFlow]);
+  }, [userId, session, handleSelectFlow, handleNewFlow]);
 
   useEffect(() => {
     const checkForFlowInUrl = async () => {
+      if (!userId) return;
+      
       const url = new URL(window.location.href);
       const flowId = url.searchParams.get('flowId');
       
       if (flowId) {
-        handleSelectFlow(flowId);
+        try {
+          // First, verify the user has access to this flow
+          const { data, error } = await supabase
+            .from('flows')
+            .select('id')
+            .eq('id', flowId)
+            .eq('user_id', userId)
+            .maybeSingle();
+            
+          if (error || !data) {
+            console.error('Error or no access to this flow:', error || 'No access');
+            toast({
+              title: "Access Denied",
+              description: "You don't have permission to access this flow",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          handleSelectFlow(flowId);
+        } catch (error) {
+          console.error('Error checking flow access:', error);
+        }
       }
     };
     
@@ -151,12 +178,12 @@ const Flowsmith = () => {
   }, [userId, handleSelectFlow]);
 
   useEffect(() => {
-    if (currentFlowId) {
+    if (currentFlowId && userId) {
       const url = new URL(window.location.href);
       url.searchParams.set('flowId', currentFlowId);
       window.history.replaceState({}, '', url.toString());
     }
-  }, [currentFlowId]);
+  }, [currentFlowId, userId]);
 
   const toggleFlowSelector = () => {
     setShowFlowSelector(prev => !prev);

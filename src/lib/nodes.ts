@@ -129,7 +129,7 @@ export const executeProcessor = async (
     throw new Error('Output node not found and could not be created');
   }
 
-  const prompt = `${processorNode.data.prompt}\n\n${combinedContent}`;
+  const prompt = processorNode.data.prompt.replace('{{input}}', combinedContent);
   console.log('Processing with LLM:', { prompt});
   try {
     // Call the process-with-gpt edge function with the combined content
@@ -143,6 +143,9 @@ export const executeProcessor = async (
       throw error;
     }
 
+    // Fixed TypeScript errors: Properly handle result types
+    const result = data.result as string || "Error: No result returned";
+
     // Update the output node with the generated content
     const updatedNodes = nodes.map(node => {
       if (node.id === outputNode?.id) {
@@ -150,7 +153,7 @@ export const executeProcessor = async (
           ...node,
           data: {
             ...node.data,
-            content: data.result || "Error: No result returned",
+            content: result,
           },
         };
       }

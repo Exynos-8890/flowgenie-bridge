@@ -30,6 +30,15 @@ export function useFlowActions(
   }, [nodes, edges, lastSavedState]);
 
   const handleNewFlow = useCallback(async () => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create a new flow",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const initialNodes: Node[] = [
         {
@@ -80,7 +89,17 @@ export function useFlowActions(
   }, [userId, setNodes, setEdges, setCurrentFlowId]);
 
   const handleSelectFlow = useCallback(async (flowId: string) => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to select a flow",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
+      // Verify that the user has access to this flow
       const { data, error } = await supabase
         .from('flows')
         .select('*')
@@ -88,7 +107,16 @@ export function useFlowActions(
         .eq('user_id', userId)  
         .single();
       
-      if (error) throw error;
+      if (error) {
+        // If we get an error, it likely means the user doesn't have access to this flow
+        console.error('Error loading flow:', error);
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access this flow",
+          variant: "destructive",
+        });
+        return;
+      }
       
       if (data) {
         setCurrentFlowId(data.id);
@@ -125,6 +153,15 @@ export function useFlowActions(
   }, [userId, setNodes, setEdges, setCurrentFlowId]);
 
   const handleSaveFlow = useCallback(async () => {
+    if (!userId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save a flow",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!currentFlowId) {
       toast({
         title: "No Flow Selected",
@@ -135,6 +172,26 @@ export function useFlowActions(
     }
     
     try {
+      // First verify that the user has access to this flow
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('user_id')
+        .eq('id', currentFlowId)
+        .single();
+        
+      if (flowError) {
+        throw flowError;
+      }
+      
+      if (flowData.user_id !== userId) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to modify this flow",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setIsAutoSaving(true);
       const { error } = await supabase
         .from('flows')
@@ -163,12 +220,29 @@ export function useFlowActions(
     } finally {
       setIsAutoSaving(false);
     }
-  }, [currentFlowId, nodes, edges]);
+  }, [currentFlowId, nodes, edges, userId]);
 
   const handleAutoSaveFlow = useCallback(async () => {
-    if (!currentFlowId || !hasStateChanged() || isAutoSaving) return;
+    if (!userId || !currentFlowId || !hasStateChanged() || isAutoSaving) return;
     
     try {
+      // First verify that the user has access to this flow
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('user_id')
+        .eq('id', currentFlowId)
+        .maybeSingle(); // using maybeSingle() to avoid error if not found
+        
+      if (flowError) {
+        console.error('Error checking flow ownership:', flowError);
+        return;
+      }
+      
+      if (!flowData || flowData.user_id !== userId) {
+        console.error('User does not have permission to auto-save this flow');
+        return;
+      }
+      
       setIsAutoSaving(true);
       const { error } = await supabase
         .from('flows')
@@ -188,11 +262,40 @@ export function useFlowActions(
     } finally {
       setIsAutoSaving(false);
     }
-  }, [currentFlowId, nodes, edges, hasStateChanged, isAutoSaving]);
+  }, [currentFlowId, nodes, edges, hasStateChanged, isAutoSaving, userId]);
 
   const handleExecuteProcessor = useCallback(
     async (processorId: string) => {
+      if (!userId || !currentFlowId) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to execute processors",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       try {
+        // First verify that the user has access to this flow
+        const { data: flowData, error: flowError } = await supabase
+          .from('flows')
+          .select('user_id')
+          .eq('id', currentFlowId)
+          .single();
+          
+        if (flowError) {
+          throw flowError;
+        }
+        
+        if (flowData.user_id !== userId) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to execute processors in this flow",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         toast({
           title: "Processor Running",
           description: "Processing your data...",
@@ -227,7 +330,7 @@ export function useFlowActions(
         });
       }
     },
-    [nodes, edges, setNodes, setEdges, handleAutoSaveFlow]
+    [nodes, edges, setNodes, setEdges, handleAutoSaveFlow, userId, currentFlowId]
   );
 
   // Set up auto-save interval (every 5 seconds)
