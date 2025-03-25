@@ -100,7 +100,7 @@ export const executeProcessor = async (
   if (!outputEdge) {
     // Create a new output node
     const newPosition = {
-      x: processorNode.position.x + 200,
+      x: processorNode.position.x + 250,
       y: processorNode.position.y,
     };
     

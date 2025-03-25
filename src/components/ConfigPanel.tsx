@@ -87,7 +87,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <div className="space-y-2">
           <Label htmlFor="promptTemplate">
             Prompt Template 
-            <span className="text-xs text-gray-500 ml-2">(Use {"{{input}}"} to reference input text)</span>
+            {/* <span className="text-xs text-gray-500 ml-2">(Use {"{{input}}"} to reference input text)</span> */}
           </Label>
           <Textarea id="promptTemplate" value={nodeData.prompt || 'Process this text:\n\n{{input}}'} onChange={e => handleChange('prompt', e.target.value)} placeholder="Enter prompt template" className="min-h-[150px] resize-y font-mono text-sm" />
         </div>
@@ -109,11 +109,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       </Button>
     </div>;
   if (!selectedNode && !selectedEdge) {
-    return <div className={`glass-panel p-6 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-right flex items-center justify-center`}>
-        <div className="text-center text-gray-500">
-          <p className="text-sm">Select a node or connection to configure</p>
-        </div>
-      </div>;
+      return null;
   }
   return <div className={`glass-panel p-6 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-right`}>
       <h3 className="font-medium text-sm mb-4 text-gray-700">
