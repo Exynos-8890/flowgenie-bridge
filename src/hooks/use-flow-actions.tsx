@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
@@ -14,6 +14,21 @@ export function useFlowActions(
   currentFlowId: string | null,
   setCurrentFlowId: React.Dispatch<React.SetStateAction<string | null>>
 ) {
+  const [lastSavedState, setLastSavedState] = useState<{ nodes: Node[], edges: Edge[] } | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  // Check if state has changed since last save
+  const hasStateChanged = useCallback(() => {
+    if (!lastSavedState) return true;
+    
+    const nodesString = JSON.stringify(nodes);
+    const edgesString = JSON.stringify(edges);
+    const lastNodesString = JSON.stringify(lastSavedState.nodes);
+    const lastEdgesString = JSON.stringify(lastSavedState.edges);
+    
+    return nodesString !== lastNodesString || edgesString !== lastEdgesString;
+  }, [nodes, edges, lastSavedState]);
+
   const handleNewFlow = useCallback(async () => {
     try {
       const initialNodes: Node[] = [
@@ -47,6 +62,8 @@ export function useFlowActions(
       
       if (data && data.length > 0) {
         setCurrentFlowId(data[0].id);
+        setLastSavedState({ nodes: initialNodes, edges: initialEdges });
+        
         toast({
           title: "New Flow Created",
           description: "You're now working on a new flow",
@@ -82,6 +99,7 @@ export function useFlowActions(
           
           setNodes(parsedNodes);
           setEdges(parsedEdges);
+          setLastSavedState({ nodes: parsedNodes, edges: parsedEdges });
           
           toast({
             title: "Flow Loaded",
@@ -117,6 +135,7 @@ export function useFlowActions(
     }
     
     try {
+      setIsAutoSaving(true);
       const { error } = await supabase
         .from('flows')
         .update({ 
@@ -127,6 +146,8 @@ export function useFlowActions(
         .eq('id', currentFlowId);
       
       if (error) throw error;
+      
+      setLastSavedState({ nodes, edges });
       
       toast({
         title: "Flow Saved",
@@ -139,8 +160,35 @@ export function useFlowActions(
         description: error instanceof Error ? error.message : "Failed to save the flow",
         variant: "destructive",
       });
+    } finally {
+      setIsAutoSaving(false);
     }
   }, [currentFlowId, nodes, edges]);
+
+  const handleAutoSaveFlow = useCallback(async () => {
+    if (!currentFlowId || !hasStateChanged() || isAutoSaving) return;
+    
+    try {
+      setIsAutoSaving(true);
+      const { error } = await supabase
+        .from('flows')
+        .update({ 
+          nodes: JSON.stringify(nodes),
+          edges: JSON.stringify(edges),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentFlowId);
+      
+      if (error) throw error;
+      
+      setLastSavedState({ nodes, edges });
+      console.log('Auto-saved flow');
+    } catch (error) {
+      console.error('Error auto-saving flow:', error);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [currentFlowId, nodes, edges, hasStateChanged, isAutoSaving]);
 
   const handleExecuteProcessor = useCallback(
     async (processorId: string) => {
@@ -162,6 +210,9 @@ export function useFlowActions(
           setEdges(prevEdges => [...prevEdges, result.newEdge as Edge]);
         }
         
+        // Auto-save after processing is complete
+        setTimeout(() => handleAutoSaveFlow(), 500);
+        
         toast({
           title: "Processing Complete",
           description: "Your data has been successfully processed.",
@@ -176,13 +227,25 @@ export function useFlowActions(
         });
       }
     },
-    [nodes, edges, setNodes, setEdges]
+    [nodes, edges, setNodes, setEdges, handleAutoSaveFlow]
   );
+
+  // Set up auto-save interval (every 5 seconds)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (hasStateChanged()) {
+        handleAutoSaveFlow();
+      }
+    }, 5000);
+    
+    return () => clearInterval(intervalId);
+  }, [handleAutoSaveFlow, hasStateChanged]);
 
   return {
     handleNewFlow,
     handleSelectFlow,
     handleSaveFlow,
+    handleAutoSaveFlow,
     handleExecuteProcessor
   };
 }

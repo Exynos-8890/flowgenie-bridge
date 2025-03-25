@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 interface ConfigPanelProps {
   selectedNode: Node | null;
   selectedEdge: Edge | null;
@@ -15,6 +16,7 @@ interface ConfigPanelProps {
   onDeleteEdge: (edgeId: string) => void;
   onExecuteProcessor: (processorId: string) => void;
 }
+
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
   selectedNode,
   selectedEdge,
@@ -25,6 +27,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const [nodeData, setNodeData] = useState<any>({});
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Update local state when the selected node changes
   useEffect(() => {
@@ -36,18 +39,36 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       setNodeData({});
     }
   }, [selectedNode]);
+
   const handleChange = (key: string, value: string) => {
     setNodeData(prev => ({
       ...prev,
       [key]: value
     }));
+    
+    // Clear previous timeout if it exists
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
+    
+    // Set a new timeout for auto-save
+    const timeout = setTimeout(() => {
+      if (selectedNode) {
+        onUpdateNode(selectedNode.id, { ...nodeData, [key]: value });
+      }
+    }, 800); // 800ms debounce time for typing
+    
+    setAutoSaveTimeout(timeout);
   };
+  
   const handleSave = () => {
     if (selectedNode) {
       onUpdateNode(selectedNode.id, nodeData);
     }
   };
-  const renderTextNodeConfig = () => <>
+  
+  const renderTextNodeConfig = () => (
+    <>
       <div className="space-y-4 mb-4">
         <div className="space-y-2">
           <Label htmlFor="nodeTitle">Node Title</Label>
@@ -66,8 +87,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </Button>
         <Button onClick={handleSave}>Save Changes</Button>
       </div>
-    </>;
-  const renderProcessorConfig = () => <>
+    </>
+  );
+  
+  const renderProcessorConfig = () => (
+    <>
       <div className="space-y-4 mb-4">
         <div className="space-y-2">
           <Label htmlFor="processorType">Processor Type</Label>
@@ -87,7 +111,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         <div className="space-y-2">
           <Label htmlFor="promptTemplate">
             Prompt Template 
-            {/* <span className="text-xs text-gray-500 ml-2">(Use {"{{input}}"} to reference input text)</span> */}
+            <span className="text-xs text-gray-500 ml-2">(Use {"{{input}}"} to reference input text)</span>
           </Label>
           <Textarea id="promptTemplate" value={nodeData.prompt || 'Process this text:\n\n{{input}}'} onChange={e => handleChange('prompt', e.target.value)} placeholder="Enter prompt template" className="min-h-[150px] resize-y font-mono text-sm" />
         </div>
@@ -102,16 +126,23 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </Button>
         </div>
       </div>
-    </>;
-  const renderEdgeConfig = () => <div className="flex justify-center">
+    </>
+  );
+  
+  const renderEdgeConfig = () => (
+    <div className="flex justify-center">
       <Button variant="outline" onClick={() => selectedEdge && onDeleteEdge(selectedEdge.id)}>
         Delete Connection
       </Button>
-    </div>;
+    </div>
+  );
+  
   if (!selectedNode && !selectedEdge) {
-      return null;
+    return null;
   }
-  return <div className={`glass-panel p-6 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-right`}>
+  
+  return (
+    <div className={`glass-panel p-6 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-right`}>
       <h3 className="font-medium text-sm mb-4 text-gray-700">
         {selectedNode ? selectedNode.type === 'processor' ? 'Processor Configuration' : 'Text Node Configuration' : selectedEdge ? 'Connection Configuration' : 'Configuration'}
       </h3>
@@ -119,6 +150,8 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       {selectedNode && selectedNode.type === 'text' && renderTextNodeConfig()}
       {selectedNode && selectedNode.type === 'processor' && renderProcessorConfig()}
       {selectedEdge && renderEdgeConfig()}
-    </div>;
+    </div>
+  );
 };
+
 export default ConfigPanel;

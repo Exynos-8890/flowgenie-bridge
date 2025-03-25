@@ -7,7 +7,8 @@ import { createTextNode, createProcessorNode } from '@/lib/nodes';
 export function useFlowInteractions(
   nodes: Node[],
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>,
-  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>
+  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
+  onFlowChange: () => void
 ) {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
@@ -56,9 +57,11 @@ export function useFlowInteractions(
 
       if (newNode) {
         setNodes((nds) => nds.concat(newNode));
+        // Trigger auto-save after node creation
+        setTimeout(() => onFlowChange(), 100);
       }
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, onFlowChange]
   );
 
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
@@ -87,8 +90,10 @@ export function useFlowInteractions(
       }
       
       setEdges((eds) => addEdge({...params, type: 'default'}, eds));
+      // Trigger auto-save after edge creation
+      setTimeout(() => onFlowChange(), 100);
     },
-    [nodes, setEdges]
+    [nodes, setEdges, onFlowChange]
   );
 
   const handleUpdateNode = useCallback(
@@ -102,12 +107,15 @@ export function useFlowInteractions(
         })
       );
       
+      // Trigger auto-save after node update
+      setTimeout(() => onFlowChange(), 100);
+      
       toast({
         title: "Changes Saved",
         description: "Your node changes have been applied.",
       });
     },
-    [setNodes]
+    [setNodes, onFlowChange]
   );
 
   const handleDeleteNode = useCallback(
@@ -116,12 +124,15 @@ export function useFlowInteractions(
       setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
       setSelectedNode(null);
       
+      // Trigger auto-save after node deletion
+      setTimeout(() => onFlowChange(), 100);
+      
       toast({
         title: "Node Deleted",
         description: "The node and its connections have been removed.",
       });
     },
-    [setNodes, setEdges]
+    [setNodes, setEdges, onFlowChange]
   );
 
   const handleDeleteEdge = useCallback(
@@ -129,12 +140,15 @@ export function useFlowInteractions(
       setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
       setSelectedEdge(null);
       
+      // Trigger auto-save after edge deletion
+      setTimeout(() => onFlowChange(), 100);
+      
       toast({
         title: "Connection Deleted",
         description: "The connection has been removed.",
       });
     },
-    [setEdges]
+    [setEdges, onFlowChange]
   );
 
   return {

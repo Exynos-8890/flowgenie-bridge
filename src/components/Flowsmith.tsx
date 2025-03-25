@@ -64,6 +64,22 @@ const Flowsmith = () => {
   const [showFlowSelector, setShowFlowSelector] = useState(false);
 
   const {
+    handleNewFlow,
+    handleSelectFlow,
+    handleSaveFlow,
+    handleAutoSaveFlow,
+    handleExecuteProcessor
+  } = useFlowActions(
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    userId,
+    currentFlowId,
+    setCurrentFlowId
+  );
+
+  const {
     selectedNode,
     selectedEdge,
     reactFlowInstance,
@@ -78,22 +94,21 @@ const Flowsmith = () => {
     handleUpdateNode,
     handleDeleteNode,
     handleDeleteEdge
-  } = useFlowInteractions(nodes, setNodes, setEdges);
-
-  const {
-    handleNewFlow,
-    handleSelectFlow,
-    handleSaveFlow,
-    handleExecuteProcessor
-  } = useFlowActions(
-    nodes,
-    edges,
-    setNodes,
+  } = useFlowInteractions(
+    nodes, 
+    setNodes, 
     setEdges,
-    userId,
-    currentFlowId,
-    setCurrentFlowId
+    handleAutoSaveFlow // Pass auto-save function to the interactions hook
   );
+
+  // Trigger auto-save when nodes or edges change
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      handleAutoSaveFlow();
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [nodes, edges, handleAutoSaveFlow]);
 
   useEffect(() => {
     const fetchUserFlows = async () => {
