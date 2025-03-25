@@ -51,7 +51,7 @@ export const executeProcessor = async (
   nodes: Node[],
   edges: Edge[],
   processorId: string
-): Promise<Node[]> => {
+): Promise<{ nodes: Node[], newEdge?: Edge }> => {
   // Find the processor node
   const processorNode = nodes.find(node => node.id === processorId);
   if (!processorNode || processorNode.type !== 'processor') {
@@ -94,6 +94,7 @@ export const executeProcessor = async (
   // Find or create the output node (connected to processor's right side)
   let outputEdge = edges.find(edge => edge.source === processorId);
   let outputNode = null;
+  let newEdge = undefined;
   
   // If no output node exists, create one
   if (!outputEdge) {
@@ -112,7 +113,7 @@ export const executeProcessor = async (
     nodes = [...nodes, newNode];
     
     // Create a new edge
-    const newEdge = {
+    newEdge = {
       id: `e-${processorId}-${newNode.id}`,
       source: processorId,
       target: newNode.id,
@@ -143,7 +144,7 @@ export const executeProcessor = async (
     }
 
     // Update the output node with the generated content
-    return nodes.map(node => {
+    const updatedNodes = nodes.map(node => {
       if (node.id === outputNode?.id) {
         return {
           ...node,
@@ -155,6 +156,11 @@ export const executeProcessor = async (
       }
       return node;
     });
+
+    return { 
+      nodes: updatedNodes,
+      newEdge 
+    };
   } catch (error) {
     console.error('Error calling process-with-gpt:', error);
     throw new Error(`Failed to process: ${error.message || 'Unknown error'}`);

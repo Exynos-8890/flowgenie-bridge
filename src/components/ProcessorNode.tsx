@@ -8,18 +8,20 @@ interface ProcessorNodeData {
   prompt?: string;
 }
 
-const ProcessorNode = memo(({ data, selected }: NodeProps<ProcessorNodeData>) => {
+const ProcessorNode = memo(({ data, selected }: NodeProps) => {
+  const nodeData = data as ProcessorNodeData;
+  
   return (
     <div className={`p-3 min-w-[180px] flowsmith-processor animate-fade-in ${selected ? 'selected bg-blue-50' : ''}`}>
       <div className="flex items-center justify-center mb-2">
         <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-          {data?.type || 'Processor'}
+          {nodeData?.type || 'Processor'}
         </div>
       </div>
       
-      {data?.prompt && (
-        <div className="text-xs text-gray-500 truncate max-w-[200px] mb-1" title={data.prompt}>
-          {data.prompt.length > 30 ? data.prompt.substring(0, 30) + '...' : data.prompt}
+      {nodeData?.prompt && (
+        <div className="text-xs text-gray-500 truncate max-w-[200px] mb-1" title={nodeData.prompt}>
+          {nodeData.prompt.length > 30 ? nodeData.prompt.substring(0, 30) + '...' : nodeData.prompt}
         </div>
       )}
       

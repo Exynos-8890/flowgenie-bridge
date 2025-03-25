@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
@@ -323,9 +324,15 @@ const Flowsmith = () => {
         
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const updatedNodes = await executeProcessor(nodes, edges, processorId);
+        const result = await executeProcessor(nodes, edges, processorId);
         
-        setNodes(updatedNodes);
+        // Update nodes with the processed result
+        setNodes(result.nodes);
+        
+        // If a new edge was created, add it to the edges
+        if (result.newEdge) {
+          setEdges(prevEdges => [...prevEdges, result.newEdge as Edge]);
+        }
         
         toast({
           title: "Processing Complete",
@@ -341,7 +348,7 @@ const Flowsmith = () => {
         });
       }
     },
-    [nodes, edges, setNodes]
+    [nodes, edges, setNodes, setEdges]
   );
 
   useEffect(() => {
@@ -485,10 +492,6 @@ const Flowsmith = () => {
       </div>
     </div>
   );
-};
-
-const toggleFlowSelector = () => {
-  setShowFlowSelector(prev => !prev);
 };
 
 const IndexPage = () => (

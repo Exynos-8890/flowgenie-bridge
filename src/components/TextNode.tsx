@@ -8,16 +8,18 @@ interface TextNodeData {
   content?: string;
 }
 
-const TextNode = memo(({ data, selected }: NodeProps<TextNodeData>) => {
+const TextNode = memo(({ data, selected }: NodeProps) => {
+  const nodeData = data as TextNodeData;
+  
   return (
     <div className={`p-4 min-w-[200px] max-w-[300px] flowsmith-node animate-fade-in ${selected ? 'selected bg-gray-50' : ''}`}>
       <div className="font-medium text-sm text-gray-700 mb-2">
-        {data?.label || 'Untitled Node'}
+        {nodeData?.label || 'Untitled Node'}
       </div>
       
-      {data?.content && (
-        <div className="text-xs text-gray-500 truncate" title={data.content}>
-          {data.content.length > 50 ? data.content.substring(0, 50) + '...' : data.content}
+      {nodeData?.content && (
+        <div className="text-xs text-gray-500 truncate" title={nodeData.content}>
+          {nodeData.content.length > 50 ? nodeData.content.substring(0, 50) + '...' : nodeData.content}
         </div>
       )}
       
