@@ -63,6 +63,8 @@ const Flowsmith = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
   const [showFlowSelector, setShowFlowSelector] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
 
   const {
     handleNewFlow,
@@ -81,15 +83,11 @@ const Flowsmith = () => {
   );
 
   const {
-    selectedNode,
-    selectedEdge,
     reactFlowInstance,
     setReactFlowInstance,
-    onNodeClick,
     onEdgeClick,
     onPaneClick,
     onDragOver,
-    onDrop,
     onDragStart,
     onConnect,
     handleUpdateNode,
@@ -101,6 +99,53 @@ const Flowsmith = () => {
     setEdges,
     handleAutoSaveFlow // Pass auto-save function to the interactions hook
   );
+
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const type = event.dataTransfer.getData('application/reactflow');
+
+      if (typeof type === 'undefined' || !type) {
+        return;
+      }
+
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      const newNodeId = `${type}_${Date.now()}`;
+      const newNode = {
+        id: newNodeId,
+        type,
+        position,
+        data: type === 'text' 
+          ? { label: 'New Text Node', content: '' } 
+          : { type: 'summary', prompt: 'Process this text:\n\n{{input}}' },
+      };
+
+      setNodes((nds) => [...nds, newNode]);
+      setSelectedNode(newNode); // 自动选中新节点
+      setTimeout(() => handleAutoSaveFlow(), 100); // 自动保存
+    },
+    [reactFlowInstance, setNodes, handleAutoSaveFlow]
+  );
+
+  const onNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      setSelectedNode(node);
+      setSelectedEdge(null); // 取消边的选择
+    },
+    [setSelectedNode, setSelectedEdge]
+  );
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    onPaneClick(); // 调用原来的onPaneClick处理其他逻辑
+  }, [onPaneClick]);
 
   // Trigger auto-save when nodes or edges change
   useEffect(() => {
@@ -236,7 +281,7 @@ const Flowsmith = () => {
             onDragOver={onDragOver}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
-            onPaneClick={onPaneClick}
+            onPaneClick={handlePaneClick}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             connectionLineType={ConnectionLineType.Bezier}
@@ -277,14 +322,16 @@ const Flowsmith = () => {
             )}
             
             <Panel position="top-right" className="m-4">
-              <ConfigPanel
-                selectedNode={selectedNode}
-                selectedEdge={selectedEdge}
-                onUpdateNode={handleUpdateNode}
-                onDeleteNode={handleDeleteNode}
-                onDeleteEdge={handleDeleteEdge}
-                onExecuteProcessor={handleExecuteProcessor}
-              />
+              {(selectedNode || selectedEdge) && (
+                <ConfigPanel
+                  selectedNode={selectedNode}
+                  selectedEdge={selectedEdge}
+                  onUpdateNode={handleUpdateNode}
+                  onDeleteNode={handleDeleteNode}
+                  onDeleteEdge={handleDeleteEdge}
+                  onExecuteProcessor={handleExecuteProcessor}
+                />
+              )}
             </Panel>
           </ReactFlow>
         </div>

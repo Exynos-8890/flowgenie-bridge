@@ -9,23 +9,11 @@ export function useFlowInteractions(
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
   onFlowChange: () => void
 ) {
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node);
-    setSelectedEdge(null);
-  }, []);
-
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
-    setSelectedEdge(edge);
-    setSelectedNode(null);
-  }, []);
-
   const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
-    setSelectedEdge(null);
+    // 只触发流程变更相关的操作，不再清除选中状态
+    // 因为选中状态现在由Flowsmith组件管理
   }, []);
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -121,7 +109,6 @@ export function useFlowInteractions(
     (nodeId: string) => {
       setNodes((nds) => nds.filter((node) => node.id !== nodeId));
       setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-      setSelectedNode(null);
 
       // 立即触发保存到数据库
       onFlowChange();
@@ -137,7 +124,6 @@ export function useFlowInteractions(
   const handleDeleteEdge = useCallback(
     (edgeId: string) => {
       setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
-      setSelectedEdge(null);
       
       // Trigger auto-save after edge deletion
       setTimeout(() => onFlowChange(), 100);
@@ -151,12 +137,8 @@ export function useFlowInteractions(
   );
 
   return {
-    selectedNode,
-    selectedEdge,
     reactFlowInstance,
     setReactFlowInstance,
-    onNodeClick,
-    onEdgeClick,
     onPaneClick,
     onDragOver,
     onDrop,
