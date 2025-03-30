@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Node, Edge, Connection, addEdge } from '@xyflow/react';
 import { toast } from '@/components/ui/use-toast';
@@ -123,10 +122,10 @@ export function useFlowInteractions(
       setNodes((nds) => nds.filter((node) => node.id !== nodeId));
       setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
       setSelectedNode(null);
-      
-      // Trigger auto-save after node deletion
-      setTimeout(() => onFlowChange(), 100);
-      
+
+      // 立即触发保存到数据库
+      onFlowChange();
+
       toast({
         title: "Node Deleted",
         description: "The node and its connections have been removed.",

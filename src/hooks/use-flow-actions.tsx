@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { supabase } from '@/integrations/supabase/client';
@@ -223,46 +222,49 @@ export function useFlowActions(
   }, [currentFlowId, nodes, edges, userId]);
 
   const handleAutoSaveFlow = useCallback(async () => {
-    if (!userId || !currentFlowId || !hasStateChanged() || isAutoSaving) return;
-    
+    if (!userId || !currentFlowId || isAutoSaving) return;
+
     try {
-      // First verify that the user has access to this flow
       const { data: flowData, error: flowError } = await supabase
         .from('flows')
         .select('user_id')
         .eq('id', currentFlowId)
-        .maybeSingle(); // using maybeSingle() to avoid error if not found
-        
+        .maybeSingle();
+
       if (flowError) {
         console.error('Error checking flow ownership:', flowError);
         return;
       }
-      
+
       if (!flowData || flowData.user_id !== userId) {
         console.error('User does not have permission to auto-save this flow');
         return;
       }
-      
+
       setIsAutoSaving(true);
       const { error } = await supabase
         .from('flows')
-        .update({ 
+        .update({
           nodes: JSON.stringify(nodes),
           edges: JSON.stringify(edges),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', currentFlowId);
-      
+
       if (error) throw error;
-      
+
       setLastSavedState({ nodes, edges });
-      console.log('Auto-saved flow');
     } catch (error) {
       console.error('Error auto-saving flow:', error);
+      toast({
+        title: "Auto-Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save the flow",
+        variant: "destructive",
+      });
     } finally {
       setIsAutoSaving(false);
     }
-  }, [currentFlowId, nodes, edges, hasStateChanged, isAutoSaving, userId]);
+  }, [currentFlowId, nodes, edges, userId, isAutoSaving]);
 
   const handleExecuteProcessor = useCallback(
     async (processorId: string) => {
@@ -301,12 +303,34 @@ export function useFlowActions(
           description: "Processing your data...",
         });
         
+        // 保存当前节点状态的快照
+        const currentNodes = [...nodes];
+        
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const result = await executeProcessor(nodes, edges, processorId);
+        const result = await executeProcessor(currentNodes, edges, processorId);
         
-        // Update nodes with the processed result
-        setNodes(result.nodes);
+        // 只更新处理器相关的节点，保留用户在处理过程中对其他节点的修改
+        setNodes(prevNodes => {
+          // 创建一个新的节点副本
+          const updatedNodes = [...prevNodes];
+          
+          // 遍历结果中的节点
+          result.nodes.forEach(resultNode => {
+            // 找到当前节点列表中对应的节点索引
+            const nodeIndex = updatedNodes.findIndex(n => n.id === resultNode.id);
+            
+            // 如果找到了，更新该节点
+            if (nodeIndex !== -1) {
+              updatedNodes[nodeIndex] = resultNode;
+            } else {
+              // 如果是新节点，添加到列表中
+              updatedNodes.push(resultNode);
+            }
+          });
+          
+          return updatedNodes;
+        });
         
         // If a new edge was created, add it to the edges
         if (result.newEdge) {
@@ -333,6 +357,66 @@ export function useFlowActions(
     [nodes, edges, setNodes, setEdges, handleAutoSaveFlow, userId, currentFlowId]
   );
 
+  // 添加导出Flow功能
+  const handleExportFlow = useCallback(async (flowName = "myflow") => {
+    if (!currentFlowId) {
+      toast({
+        title: "No Flow Selected",
+        description: "Please select a flow to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // 确保用户有权限访问该flow
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('id', currentFlowId)
+        .eq('user_id', userId)
+        .single();
+        
+      if (flowError) {
+        throw flowError;
+      }
+
+      const flowExport = {
+        id: flowData.id,
+        name: flowData.name,
+        nodes: JSON.parse(flowData.nodes),
+        edges: JSON.parse(flowData.edges),
+        created_at: flowData.created_at,
+        updated_at: flowData.updated_at
+      };
+
+      // 创建一个Blob对象
+      const blob = new Blob([JSON.stringify(flowExport, null, 2)], { type: 'application/json' });
+
+      // 创建下载链接
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${flowData.name || flowName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Flow Exported",
+        description: `"${flowData.name}" has been exported to your downloads`,
+      });
+    } catch (error) {
+      console.error('Error exporting flow:', error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export the flow",
+        variant: "destructive",
+      });
+    }
+  }, [currentFlowId, userId]);
+
   // Set up auto-save interval (every 5 seconds)
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -349,6 +433,7 @@ export function useFlowActions(
     handleSelectFlow,
     handleSaveFlow,
     handleAutoSaveFlow,
-    handleExecuteProcessor
+    handleExecuteProcessor,
+    handleExportFlow
   };
 }
