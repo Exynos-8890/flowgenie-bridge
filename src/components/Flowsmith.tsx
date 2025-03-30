@@ -263,7 +263,7 @@ const Flowsmith = () => {
             size="sm"
             onClick={signOut}
           >
-            登出
+            log out
           </Button>
         </div>
       </header>

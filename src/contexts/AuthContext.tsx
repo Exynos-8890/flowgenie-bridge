@@ -50,15 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await supabase.auth.signOut();
       toast({
-        title: "已登出",
-        description: "您已成功登出系统",
+        title: "log out",
+        description: "Successfully logged out",
       });
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
       toast({
-        title: "登出失败",
-        description: "请稍后再试",
+        title: "Error logging out",
+        description: "Failed to log out",
         variant: "destructive",
       });
     }

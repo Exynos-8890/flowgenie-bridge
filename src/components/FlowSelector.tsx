@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Save, Download } from 'lucide-react';
+import { Plus, Save, Download, Upload, Trash } from 'lucide-react';
 
 interface Flow {
   id: string;
@@ -32,6 +32,7 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   const [flows, setFlows] = useState<Flow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [flowName, setFlowName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch flows from the edge function
   const fetchFlows = async () => {
@@ -192,6 +193,119 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
+  // 处理文件导入
+  const importFlow = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !session?.user?.id) return;
+
+    try {
+      const fileContent = await file.text();
+      const importedData = JSON.parse(fileContent);
+
+      // 验证导入的数据格式
+      if (!importedData.name || !importedData.nodes || !importedData.edges) {
+        throw new Error('无效的流程数据格式');
+      }
+
+      // 创建新的流程名称 (添加 "导入-" 前缀)
+      const newFlowName = `导入-${importedData.name}`;
+
+      // 创建新流程
+      const { data, error } = await supabase
+        .from('flows')
+        .insert({
+          name: newFlowName,
+          user_id: session.user.id,
+          nodes: JSON.stringify(importedData.nodes),
+          edges: JSON.stringify(importedData.edges),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: '导入成功',
+        description: `流程 "${newFlowName}" 已成功导入`,
+      });
+
+      // 刷新流程列表并选择新导入的流程
+      fetchFlows();
+      if (data) {
+        onSelectFlow(data.id);
+      }
+    } catch (error) {
+      console.error('导入流程时出错:', error);
+      toast({
+        title: '导入失败',
+        description: error instanceof Error ? error.message : '发生未知错误',
+        variant: 'destructive',
+      });
+    }
+
+    // 重置文件输入
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // 触发文件选择对话框
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 删除流程函数
+  const deleteFlow = async () => {
+    if (!currentFlowId) {
+      toast({
+        title: '没有选择流程',
+        description: '请先选择一个流程进行删除',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!window.confirm('确定要删除此流程吗？此操作不可恢复。')) {
+      return;
+    }
+
+    try {
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('user_id')
+        .eq('id', currentFlowId)
+        .single();
+
+      if (flowError) throw flowError;
+
+      if (flowData.user_id !== session?.user?.id) {
+        throw new Error('您没有权限删除此流程');
+      }
+
+      const { error } = await supabase
+        .from('flows')
+        .delete()
+        .eq('id', currentFlowId);
+
+      if (error) throw error;
+
+      toast({
+        title: '删除成功',
+        description: '流程已成功删除',
+      });
+
+      fetchFlows();
+      onSelectFlow(null); // 清除当前选择
+    } catch (error) {
+      console.error('删除流程时出错:', error);
+      toast({
+        title: '删除失败',
+        description: error instanceof Error ? error.message : '发生未知错误',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Load flows on component mount and when session changes
   useEffect(() => {
     if (session) {
@@ -220,9 +334,24 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     <div className={`glass-panel p-4 rounded-lg shadow-lg ${isMobile ? 'w-full' : 'w-[320px]'} animate-slide-in-left`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-700">Your Flows</h3>
-        <Button size="sm" onClick={onNewFlow} title="Create New Flow">
-          <Plus className="h-4 w-4" />
-        </Button>
+        <div className="flex space-x-2">
+          {/* 导入按钮 */}
+          <Button size="sm" variant="outline" onClick={handleImportClick} title="导入流程">
+            <Upload className="h-4 w-4" />
+          </Button>
+          {/* 隐藏的文件输入 */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={importFlow}
+            accept=".json"
+            style={{ display: 'none' }}
+          />
+          {/* 新建流程按钮 */}
+          <Button size="sm" onClick={onNewFlow} title="新建流程">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -259,6 +388,15 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
             title="Export Flow to JSON"
           >
             <Download className="h-4 w-4" />
+          </Button>
+          {/* 添加删除按钮 */}
+          <Button
+            variant="destructive"
+            onClick={deleteFlow}
+            disabled={!currentFlowId}
+            title="Delete Flow"
+          >
+            <Trash className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -70,13 +70,13 @@ const Login = () => {
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900">Flowsmith</h1>
-          <p className="mt-2 text-gray-600">登录您的账户</p>
+          <p className="mt-2 text-gray-600"> Log in your account</p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">邮箱</Label>
+              <Label htmlFor="email">Email address</Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
@@ -84,7 +84,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="请输入邮箱"
+                  placeholder="please enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -94,7 +94,7 @@ const Login = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
+              <Label htmlFor="password">password</Label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <KeyRound className="h-5 w-5 text-gray-400" />
@@ -102,7 +102,7 @@ const Login = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="请输入密码"
+                  placeholder="please enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -115,7 +115,7 @@ const Login = () => {
           <div className="flex items-center justify-between">
             <div className="text-sm">
               <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                忘记密码?
+                Forgot password?
               </a>
             </div>
           </div>
@@ -125,7 +125,7 @@ const Login = () => {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? '登录中...' : '登录'}
+            {isLoading ? 'loading...' : 'login'}
           </Button>
           
           {/* Signup link removed as requested */}
