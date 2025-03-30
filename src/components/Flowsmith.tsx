@@ -28,6 +28,7 @@ import { useFlowInteractions } from '@/hooks/use-flow-interactions';
 // Import shadcn components
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { User } from 'lucide-react';
 
 const nodeTypes = {
   text: TextNode,
@@ -193,6 +194,17 @@ const Flowsmith = () => {
     <div className="w-full h-screen flex flex-col overflow-hidden">
       <header className="h-14 p-4 flex items-center justify-between border-b glass-panel">
         <h1 className="text-xl font-medium text-gray-800">Flowsmith</h1>
+        
+        {/* 新增: 显示当前用户邮箱 */}
+        <div className="flex-grow flex justify-end mr-4">
+          {session?.user?.email && (
+            <span className="text-sm text-gray-600 flex items-center">
+              <User className="h-4 w-4 mr-1.5" />
+              {session.user.email}
+            </span>
+          )}
+        </div>
+        
         <div className="flex space-x-2">
           <Button 
             variant="outline" 
@@ -230,6 +242,7 @@ const Flowsmith = () => {
             connectionLineType={ConnectionLineType.Bezier}
             defaultEdgeOptions={{ animated: true }}
             fitView
+            fitViewOptions={{ maxZoom: 1, padding: 0.2 }}
             className="bg-gray-50"
           >
             <Background variant={BackgroundVariant.Dots} gap={12} size={1} color="#cbd5e1" />

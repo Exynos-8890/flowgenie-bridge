@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Save } from 'lucide-react';
+import { Plus, Save, Download } from 'lucide-react';
 
 interface Flow {
   id: string;
@@ -127,12 +126,85 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
+  // 导出当前流程为JSON文件
+  const exportFlow = async () => {
+    if (!currentFlowId) {
+      toast({
+        title: '没有选择流程',
+        description: '请先选择一个流程进行导出',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // 检查用户是否有访问此流程的权限
+      const { data: flowData, error: flowError } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('id', currentFlowId)
+        .single();
+
+      if (flowError) {
+        throw flowError;
+      }
+
+      if (flowData.user_id !== session?.user?.id) {
+        throw new Error('您没有权限导出此流程');
+      }
+      
+      // 准备导出数据
+      const exportData = {
+        name: flowData.name,
+        nodes: JSON.parse(flowData.nodes || '[]'),
+        edges: JSON.parse(flowData.edges || '[]'),
+        exportedAt: new Date().toISOString()
+      };
+      
+      // 创建下载链接
+      const fileName = `${flowData.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+      const json = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // 创建一个隐藏的下载链接并点击它
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      
+      // 清理
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: '导出成功',
+        description: `流程 "${flowData.name}" 已导出为JSON文件`,
+      });
+    } catch (error) {
+      console.error('导出流程时出错:', error);
+      toast({
+        title: '导出失败',
+        description: error instanceof Error ? error.message : '发生未知错误',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Load flows on component mount and when session changes
   useEffect(() => {
     if (session) {
       fetchFlows();
     }
   }, [session]);
+
+  // 新增：当 currentFlowId 变化时重新加载 flows
+  useEffect(() => {
+    if (session && currentFlowId) {
+      fetchFlows();
+    }
+  }, [currentFlowId]);
 
   // Update flow name input when a new flow is selected
   useEffect(() => {
@@ -179,6 +251,14 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
           >
             <Save className="h-4 w-4 mr-2" />
             Save Flow
+          </Button>
+          <Button
+            variant="outline"
+            onClick={exportFlow}
+            disabled={!currentFlowId}
+            title="Export Flow to JSON"
+          >
+            <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>
