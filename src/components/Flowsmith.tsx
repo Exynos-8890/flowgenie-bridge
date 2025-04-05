@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
@@ -146,6 +147,12 @@ const Flowsmith = () => {
     setSelectedEdge(null);
     onPaneClick(); // 调用原来的onPaneClick处理其他逻辑
   }, [onPaneClick]);
+
+  // Custom flow selection handler that also closes the flow selector
+  const handleFlowSelection = useCallback((flowId: string) => {
+    handleSelectFlow(flowId);
+    setShowFlowSelector(false); // Close the flow selector after selection
+  }, [handleSelectFlow]);
 
   // Trigger auto-save when nodes or edges change
   useEffect(() => {
@@ -314,8 +321,11 @@ const Flowsmith = () => {
               <Panel position="top-center" className="m-4">
                 <FlowSelector
                   currentFlowId={currentFlowId}
-                  onNewFlow={handleNewFlow}
-                  onSelectFlow={handleSelectFlow}
+                  onNewFlow={() => {
+                    handleNewFlow();
+                    setShowFlowSelector(false); // Close after creating a new flow
+                  }}
+                  onSelectFlow={handleFlowSelection}
                   onSaveFlow={handleSaveFlow}
                 />
               </Panel>

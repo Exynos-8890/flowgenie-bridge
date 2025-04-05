@@ -1,7 +1,8 @@
+
 import { useState, useCallback } from 'react';
 import { Node, Edge, Connection, addEdge } from '@xyflow/react';
 import { toast } from '@/components/ui/use-toast';
-import { createTextNode, createProcessorNode } from '@/lib/nodes';
+// Removed the incorrect imports from @/lib/nodes
 
 export function useFlowInteractions(
   nodes: Node[],
@@ -37,9 +38,19 @@ export function useFlowInteractions(
 
       let newNode;
       if (type === 'text') {
-        newNode = createTextNode(position);
+        newNode = {
+          id: `${type}_${Date.now()}`,
+          type,
+          position,
+          data: { label: 'New Text Node', content: '' },
+        };
       } else if (type === 'processor') {
-        newNode = createProcessorNode(position);
+        newNode = {
+          id: `${type}_${Date.now()}`,
+          type,
+          position,
+          data: { type: 'summary', prompt: 'Process this text:\n\n{{input}}' },
+        };
       }
 
       if (newNode) {

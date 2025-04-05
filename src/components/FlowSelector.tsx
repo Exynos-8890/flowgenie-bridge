@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -53,7 +54,13 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
         throw error;
       }
 
-      setFlows(data?.flows || []);
+      // The flows are already sorted by updated_at in the edge function,
+      // but we'll sort them here again just to be sure
+      const sortedFlows = (data?.flows || []).sort((a: Flow, b: Flow) => {
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+
+      setFlows(sortedFlows);
     } catch (error) {
       console.error('Error fetching flows:', error);
       toast({
@@ -420,7 +427,11 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
               >
                 <div className="font-medium">{flow.name}</div>
                 <div className="text-xs text-gray-500">
-                  {new Date(flow.created_at).toLocaleDateString()}
+                  {new Date(flow.updated_at).toLocaleDateString()} 
+                  {/* Add time to show more precisely when it was updated */}
+                  <span className="ml-1">
+                    {new Date(flow.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </span>
                 </div>
               </div>
             ))}
