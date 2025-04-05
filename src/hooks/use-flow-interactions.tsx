@@ -94,6 +94,14 @@ export function useFlowInteractions(
     [nodes, setEdges, onFlowChange]
   );
 
+  const onEdgeClick = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      // Implement edge selection logic
+      return edge;
+    },
+    []
+  );
+
   const handleUpdateNode = useCallback(
     (nodeId: string, data: any) => {
       setNodes((nds) =>
@@ -155,6 +163,7 @@ export function useFlowInteractions(
     onDrop,
     onDragStart,
     onConnect,
+    onEdgeClick,
     handleUpdateNode,
     handleDeleteNode,
     handleDeleteEdge

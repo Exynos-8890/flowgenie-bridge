@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -6,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Maximize } from 'lucide-react';
 
 interface ConfigPanelProps {
   selectedNode: Node | null;
@@ -27,6 +30,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const isMobile = useIsMobile();
   const [nodeData, setNodeData] = useState<any>({});
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [fullscreenEditor, setFullscreenEditor] = useState(false);
 
   // Update local state when the selected node changes
   useEffect(() => {
@@ -75,8 +79,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="nodeContent">Content</Label>
-          <Textarea id="nodeContent" value={nodeData.content || ''} onChange={e => handleChange('content', e.target.value)} placeholder="Enter node content" className="min-h-[200px] resize-y" />
+          <div className="flex justify-between items-center">
+            <Label htmlFor="nodeContent">Content</Label>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setFullscreenEditor(true)}
+              className="h-8 w-8 p-0"
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
+          </div>
+          <Textarea 
+            id="nodeContent" 
+            value={nodeData.content || ''} 
+            onChange={e => handleChange('content', e.target.value)} 
+            placeholder="Enter node content" 
+            className="min-h-[200px] resize-y" 
+          />
         </div>
       </div>
       
@@ -86,6 +106,39 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </Button>
         <Button onClick={handleSave}>Save Changes</Button>
       </div>
+
+      {/* Fullscreen Editor Dialog */}
+      <Dialog open={fullscreenEditor} onOpenChange={setFullscreenEditor}>
+        <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{nodeData.label || 'Edit Content'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-[70vh] flex flex-col">
+            <Textarea 
+              value={nodeData.content || ''} 
+              onChange={e => handleChange('content', e.target.value)} 
+              placeholder="Enter node content" 
+              className="flex-1 min-h-[60vh] resize-none text-base p-4"
+            />
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setFullscreenEditor(false)}
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  handleSave();
+                  setFullscreenEditor(false);
+                }}
+              >
+                Save & Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
   
@@ -108,10 +161,24 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="promptTemplate">
-            Prompt Template 
-          </Label>
-          <Textarea id="promptTemplate" value={nodeData.prompt || 'Process this text:\n\n{{input}}'} onChange={e => handleChange('prompt', e.target.value)} placeholder="Enter prompt template" className="min-h-[150px] resize-y font-mono text-sm" />
+          <div className="flex justify-between items-center">
+            <Label htmlFor="promptTemplate">Prompt Template</Label>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setFullscreenEditor(true)}
+              className="h-8 w-8 p-0"
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
+          </div>
+          <Textarea 
+            id="promptTemplate" 
+            value={nodeData.prompt || 'Process this text:\n\n{{input}}'} 
+            onChange={e => handleChange('prompt', e.target.value)} 
+            placeholder="Enter prompt template" 
+            className="min-h-[150px] resize-y font-mono text-sm" 
+          />
         </div>
       </div>
       
@@ -124,6 +191,39 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Fullscreen Editor Dialog */}
+      <Dialog open={fullscreenEditor} onOpenChange={setFullscreenEditor}>
+        <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Edit Prompt Template</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-[70vh] flex flex-col">
+            <Textarea 
+              value={nodeData.prompt || 'Process this text:\n\n{{input}}'} 
+              onChange={e => handleChange('prompt', e.target.value)} 
+              placeholder="Enter prompt template" 
+              className="flex-1 min-h-[60vh] resize-none font-mono text-base p-4"
+            />
+            <div className="flex justify-end mt-4 space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setFullscreenEditor(false)}
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  handleSave();
+                  setFullscreenEditor(false);
+                }}
+              >
+                Save & Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
   
