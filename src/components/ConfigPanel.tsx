@@ -109,9 +109,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
         
         <div className="space-y-2">
           <Label htmlFor="promptTemplate">
-            Prompt Template 
+            Prompt
           </Label>
-          <Textarea id="promptTemplate" value={nodeData.prompt || 'Process this text:\n\n{{input}}'} onChange={e => handleChange('prompt', e.target.value)} placeholder="Enter prompt template" className="min-h-[150px] resize-y font-mono text-sm" />
+          <Textarea id="promptTemplate" value={nodeData.prompt !== undefined ? nodeData.prompt : 'Process this text:\n\n{{input}}'} onChange={e => handleChange('prompt', e.target.value)} placeholder="Enter prompt here" className="min-h-[150px] resize-y font-mono text-sm" />
         </div>
       </div>
       
