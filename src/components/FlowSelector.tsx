@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,19 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   const [flowName, setFlowName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch flows from the edge function
+  const formatDate = (dateString: string | number | boolean | { [key: string]: Json; } | Json[] | null) => {
+    if (!dateString || typeof dateString !== 'string') return '';
+    
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
   const fetchFlows = async () => {
     try {
       setIsLoading(true);
@@ -54,8 +65,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
         throw error;
       }
 
-      // The flows are already sorted by updated_at in the edge function,
-      // but we'll sort them here again just to be sure
       const sortedFlows = (data?.flows || []).sort((a: Flow, b: Flow) => {
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       });
@@ -73,7 +82,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
-  // Update a flow name
   const updateFlowName = async () => {
     if (!currentFlowId) {
       toast({
@@ -94,7 +102,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
 
     try {
-      // First, check if the user has access to this flow
       const { data: flowData, error: flowError } = await supabase
         .from('flows')
         .select('user_id')
@@ -134,7 +141,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
-  // 导出当前流程为JSON文件
   const exportFlow = async () => {
     if (!currentFlowId) {
       toast({
@@ -146,7 +152,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
 
     try {
-      // 检查用户是否有访问此流程的权限
       const { data: flowData, error: flowError } = await supabase
         .from('flows')
         .select('*')
@@ -161,7 +166,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
         throw new Error('您没有权限导出此流程');
       }
       
-      // 准备导出数据
       const exportData = {
         name: flowData.name,
         nodes: JSON.parse(flowData.nodes || '[]'),
@@ -169,20 +173,17 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
         exportedAt: new Date().toISOString()
       };
       
-      // 创建下载链接
       const fileName = `${flowData.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
       const json = JSON.stringify(exportData, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
-      // 创建一个隐藏的下载链接并点击它
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       
-      // 清理
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
@@ -200,7 +201,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
-  // 处理文件导入
   const importFlow = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !session?.user?.id) return;
@@ -209,15 +209,12 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       const fileContent = await file.text();
       const importedData = JSON.parse(fileContent);
 
-      // 验证导入的数据格式
       if (!importedData.name || !importedData.nodes || !importedData.edges) {
         throw new Error('无效的流程数据格式');
       }
 
-      // 创建新的流程名称 (添加 "导入-" 前缀)
       const newFlowName = `导入-${importedData.name}`;
 
-      // 创建新流程
       const { data, error } = await supabase
         .from('flows')
         .insert({
@@ -236,7 +233,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
         description: `流程 "${newFlowName}" 已成功导入`,
       });
 
-      // 刷新流程列表并选择新导入的流程
       fetchFlows();
       if (data) {
         onSelectFlow(data.id);
@@ -250,18 +246,15 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       });
     }
 
-    // 重置文件输入
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // 触发文件选择对话框
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
-  // 删除流程函数
   const deleteFlow = async () => {
     if (!currentFlowId) {
       toast({
@@ -302,7 +295,7 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       });
 
       fetchFlows();
-      onSelectFlow(null); // 清除当前选择
+      onSelectFlow(null);
     } catch (error) {
       console.error('删除流程时出错:', error);
       toast({
@@ -313,21 +306,18 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
     }
   };
 
-  // Load flows on component mount and when session changes
   useEffect(() => {
     if (session) {
       fetchFlows();
     }
   }, [session]);
 
-  // 新增：当 currentFlowId 变化时重新加载 flows
   useEffect(() => {
     if (session && currentFlowId) {
       fetchFlows();
     }
   }, [currentFlowId]);
 
-  // Update flow name input when a new flow is selected
   useEffect(() => {
     if (currentFlowId) {
       const currentFlow = flows.find(flow => flow.id === currentFlowId);
@@ -342,11 +332,9 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-700">Your Flows</h3>
         <div className="flex space-x-2">
-          {/* 导入按钮 */}
           <Button size="sm" variant="outline" onClick={handleImportClick} title="导入流程">
             <Upload className="h-4 w-4" />
           </Button>
-          {/* 隐藏的文件输入 */}
           <input
             type="file"
             ref={fileInputRef}
@@ -354,7 +342,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
             accept=".json"
             style={{ display: 'none' }}
           />
-          {/* 新建流程按钮 */}
           <Button size="sm" onClick={onNewFlow} title="新建流程">
             <Plus className="h-4 w-4" />
           </Button>
@@ -396,7 +383,6 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
           >
             <Download className="h-4 w-4" />
           </Button>
-          {/* 添加删除按钮 */}
           <Button
             variant="destructive"
             onClick={deleteFlow}
@@ -427,11 +413,7 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
               >
                 <div className="font-medium">{flow.name}</div>
                 <div className="text-xs text-gray-500">
-                  {new Date(flow.updated_at).toLocaleDateString()} 
-                  {/* Add time to show more precisely when it was updated */}
-                  <span className="ml-1">
-                    {new Date(flow.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </span>
+                  {formatDate(flow.updated_at)}
                 </div>
               </div>
             ))}

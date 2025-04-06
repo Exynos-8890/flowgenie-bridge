@@ -16,7 +16,6 @@ export function useFlowActions(
   const [lastSavedState, setLastSavedState] = useState<{ nodes: Node[], edges: Edge[] } | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
-  // Check if state has changed since last save
   const hasStateChanged = useCallback(() => {
     if (!lastSavedState) return true;
     
@@ -98,7 +97,6 @@ export function useFlowActions(
     }
     
     try {
-      // Verify that the user has access to this flow
       const { data, error } = await supabase
         .from('flows')
         .select('*')
@@ -107,7 +105,6 @@ export function useFlowActions(
         .single();
       
       if (error) {
-        // If we get an error, it likely means the user doesn't have access to this flow
         console.error('Error loading flow:', error);
         toast({
           title: "Access Denied",
@@ -171,7 +168,6 @@ export function useFlowActions(
     }
     
     try {
-      // First verify that the user has access to this flow
       const { data: flowData, error: flowError } = await supabase
         .from('flows')
         .select('user_id')
@@ -278,7 +274,6 @@ export function useFlowActions(
       }
       
       try {
-        // First verify that the user has access to this flow
         const { data: flowData, error: flowError } = await supabase
           .from('flows')
           .select('user_id')
@@ -303,28 +298,21 @@ export function useFlowActions(
           description: "Processing your data...",
         });
         
-        // 保存当前节点状态的快照
         const currentNodes = [...nodes];
         
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const result = await executeProcessor(currentNodes, edges, processorId);
         
-        // 只更新处理器相关的节点，保留用户在处理过程中对其他节点的修改
         setNodes(prevNodes => {
-          // 创建一个新的节点副本
           const updatedNodes = [...prevNodes];
           
-          // 遍历结果中的节点
           result.nodes.forEach(resultNode => {
-            // 找到当前节点列表中对应的节点索引
             const nodeIndex = updatedNodes.findIndex(n => n.id === resultNode.id);
             
-            // 如果找到了，更新该节点
             if (nodeIndex !== -1) {
               updatedNodes[nodeIndex] = resultNode;
             } else {
-              // 如果是新节点，添加到列表中
               updatedNodes.push(resultNode);
             }
           });
@@ -332,12 +320,10 @@ export function useFlowActions(
           return updatedNodes;
         });
         
-        // If a new edge was created, add it to the edges
         if (result.newEdge) {
           setEdges(prevEdges => [...prevEdges, result.newEdge as Edge]);
         }
         
-        // Auto-save after processing is complete
         setTimeout(() => handleAutoSaveFlow(), 500);
         
         toast({
@@ -357,7 +343,6 @@ export function useFlowActions(
     [nodes, edges, setNodes, setEdges, handleAutoSaveFlow, userId, currentFlowId]
   );
 
-  // 添加导出Flow功能
   const handleExportFlow = useCallback(async (flowName = "myflow") => {
     if (!currentFlowId) {
       toast({
@@ -369,31 +354,34 @@ export function useFlowActions(
     }
 
     try {
-      // 确保用户有权限访问该flow
       const { data: flowData, error: flowError } = await supabase
         .from('flows')
         .select('*')
         .eq('id', currentFlowId)
         .eq('user_id', userId)
         .single();
-        
+      
       if (flowError) {
         throw flowError;
       }
 
+      const nodesJson = flowData.nodes;
+      const edgesJson = flowData.edges;
+      
+      const parsedNodes = typeof nodesJson === 'string' ? JSON.parse(nodesJson) : nodesJson;
+      const parsedEdges = typeof edgesJson === 'string' ? JSON.parse(edgesJson) : edgesJson;
+
       const flowExport = {
         id: flowData.id,
         name: flowData.name,
-        nodes: JSON.parse(flowData.nodes),
-        edges: JSON.parse(flowData.edges),
+        nodes: parsedNodes,
+        edges: parsedEdges,
         created_at: flowData.created_at,
         updated_at: flowData.updated_at
       };
 
-      // 创建一个Blob对象
       const blob = new Blob([JSON.stringify(flowExport, null, 2)], { type: 'application/json' });
 
-      // 创建下载链接
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -417,7 +405,6 @@ export function useFlowActions(
     }
   }, [currentFlowId, userId]);
 
-  // Set up auto-save interval (every 5 seconds)
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (hasStateChanged()) {

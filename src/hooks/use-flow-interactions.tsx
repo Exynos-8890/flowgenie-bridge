@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { Node, Edge, Connection, addEdge } from '@xyflow/react';
 import { toast } from '@/components/ui/use-toast';
-// Removed the incorrect imports from @/lib/nodes
 
 export function useFlowInteractions(
   nodes: Node[],
