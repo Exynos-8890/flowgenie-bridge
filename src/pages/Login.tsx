@@ -31,8 +31,8 @@ const Login = () => {
     
     if (!email || !password) {
       toast({
-        title: "输入错误",
-        description: "请输入邮箱和密码",
+        title: "invalid input",
+        description: "please enter your email and password",
         variant: "destructive",
       });
       return;
@@ -49,15 +49,16 @@ const Login = () => {
       if (error) throw error;
       
       toast({
-        title: "登录成功",
-        description: "欢迎回来！",
+        title: "login success",
+        description: "welcome back",
+        variant: "default",
       });
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       toast({
-        title: "登录失败",
-        description: "请检查您的邮箱和密码",
+        title: "login failed",
+        description: "please check your email and password",
         variant: "destructive",
       });
     } finally {

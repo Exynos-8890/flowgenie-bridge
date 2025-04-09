@@ -14,6 +14,9 @@ COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
 # 安装依赖：安装项目所需的npm包，--silent参数减少安装过程中的日志输出
 RUN npm install --silent
 
+# 安装Google Generative AI包
+RUN npm install @google/genai --silent
+
 # 更新browserslist数据库：使前端工具能够正确识别目标浏览器
 RUN npx update-browserslist-db@latest
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -138,8 +137,8 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   const exportFlow = async () => {
     if (!currentFlowId) {
       toast({
-        title: '没有选择流程',
-        description: '请先选择一个流程进行导出',
+        title: 'No Flow Selected',
+        description: 'Please select a flow to export',
         variant: 'destructive',
       });
       return;
@@ -158,7 +157,7 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       }
 
       if (flowData.user_id !== session?.user?.id) {
-        throw new Error('您没有权限导出此流程');
+        throw new Error('You do not have permission to export this flow');
       }
       
       // 准备导出数据
@@ -187,14 +186,14 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       URL.revokeObjectURL(url);
       
       toast({
-        title: '导出成功',
-        description: `流程 "${flowData.name}" 已导出为JSON文件`,
+        title: 'Export Successful',
+        description: `Flow "${flowData.name}" has been exported as a JSON file`,
       });
     } catch (error) {
-      console.error('导出流程时出错:', error);
+      console.error('Error exporting flow:', error);
       toast({
-        title: '导出失败',
-        description: error instanceof Error ? error.message : '发生未知错误',
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
         variant: 'destructive',
       });
     }
@@ -211,11 +210,11 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
 
       // 验证导入的数据格式
       if (!importedData.name || !importedData.nodes || !importedData.edges) {
-        throw new Error('无效的流程数据格式');
+        throw new Error('Invalid flow data format');
       }
 
       // 创建新的流程名称 (添加 "导入-" 前缀)
-      const newFlowName = `导入-${importedData.name}`;
+      const newFlowName = `Imported-${importedData.name}`;
 
       // 创建新流程
       const { data, error } = await supabase
@@ -232,8 +231,8 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       if (error) throw error;
 
       toast({
-        title: '导入成功',
-        description: `流程 "${newFlowName}" 已成功导入`,
+        title: 'Import Successful',
+        description: `Flow "${newFlowName}" has been successfully imported`,
       });
 
       // 刷新流程列表并选择新导入的流程
@@ -242,10 +241,10 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
         onSelectFlow(data.id);
       }
     } catch (error) {
-      console.error('导入流程时出错:', error);
+      console.error('Error importing flow:', error);
       toast({
-        title: '导入失败',
-        description: error instanceof Error ? error.message : '发生未知错误',
+        title: 'Import Failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
         variant: 'destructive',
       });
     }
@@ -265,14 +264,14 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
   const deleteFlow = async () => {
     if (!currentFlowId) {
       toast({
-        title: '没有选择流程',
-        description: '请先选择一个流程进行删除',
+        title: 'No Flow Selected',
+        description: 'Please select a flow to delete',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!window.confirm('确定要删除此流程吗？此操作不可恢复。')) {
+    if (!window.confirm('Are you sure you want to delete this flow? This action cannot be undone.')) {
       return;
     }
 
@@ -286,7 +285,7 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       if (flowError) throw flowError;
 
       if (flowData.user_id !== session?.user?.id) {
-        throw new Error('您没有权限删除此流程');
+        throw new Error('You do not have permission to delete this flow');
       }
 
       const { error } = await supabase
@@ -297,17 +296,17 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       if (error) throw error;
 
       toast({
-        title: '删除成功',
-        description: '流程已成功删除',
+        title: 'Deletion Successful',
+        description: 'Flow has been successfully deleted',
       });
 
       fetchFlows();
       onSelectFlow(null); // 清除当前选择
     } catch (error) {
-      console.error('删除流程时出错:', error);
+      console.error('Error deleting flow:', error);
       toast({
-        title: '删除失败',
-        description: error instanceof Error ? error.message : '发生未知错误',
+        title: 'Deletion Failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
         variant: 'destructive',
       });
     }
@@ -342,8 +341,8 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-medium text-gray-700">Your Flows</h3>
         <div className="flex space-x-2">
-          {/* 导入按钮 */}
-          <Button size="sm" variant="outline" onClick={handleImportClick} title="导入流程">
+          {/* Import button */}
+          <Button size="sm" variant="outline" onClick={handleImportClick} title="Import Flow">
             <Upload className="h-4 w-4" />
           </Button>
           {/* 隐藏的文件输入 */}
@@ -354,8 +353,8 @@ const FlowSelector: React.FC<FlowSelectorProps> = ({
             accept=".json"
             style={{ display: 'none' }}
           />
-          {/* 新建流程按钮 */}
-          <Button size="sm" onClick={onNewFlow} title="新建流程">
+          {/* New flow button */}
+          <Button size="sm" onClick={onNewFlow} title="New Flow">
             <Plus className="h-4 w-4" />
           </Button>
         </div>
