@@ -1,4 +1,3 @@
-
 import { Node, Edge, XYPosition, Connection } from '@xyflow/react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -46,7 +45,7 @@ export const createEdge = (connection: Connection): Edge => {
   };
 };
 
-// Execute a processor (using Siliconflow API)
+// Execute a processor (using LLM - Silicon Flow or Gemini)
 export const executeProcessor = async (
   nodes: Node[],
   edges: Edge[],
@@ -131,9 +130,32 @@ export const executeProcessor = async (
 
   const prompt = `${processorNode.data.prompt}\n\n${combinedContent}`;
   console.log('Processing with LLM:', { prompt});
+  
   try {
-    // Call the process-with-gpt edge function with the combined content
-    const { data, error } = await supabase.functions.invoke('process-with-gpt', {
+    // 首先从数据库获取当前应该使用的模型
+    const { data: configData, error: configError } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'llm_model')
+      .single();
+
+    if (configError) {
+      console.warn('无法获取模型配置，使用默认模型 siliconflow:', configError);
+    }
+
+    // 确定使用哪个模型 (siliconflow 或 gemini)
+    const modelToUse = configData?.value || 'siliconflow';
+    console.log(`Using LLM model: ${modelToUse}`);
+    console.log('config:', configData?.value);
+
+    // 根据选择的模型调用不同的 Edge Function
+    let functionName = 'process-with-gpt'; // 默认使用 Silicon Flow
+    if (modelToUse === 'gemini') {
+      functionName = 'process-with-gemini'; // 使用 Gemini
+    }
+
+    // 调用选定的 Edge Function
+    const { data, error } = await supabase.functions.invoke(functionName, {
       body: {
         content: prompt,
       }
@@ -165,7 +187,7 @@ export const executeProcessor = async (
       newEdge 
     };
   } catch (error) {
-    console.error('Error calling process-with-gpt:', error);
+    console.error(`Error calling LLM processor:`, error);
     throw new Error(`Failed to process: ${error.message || 'Unknown error'}`);
   }
 };

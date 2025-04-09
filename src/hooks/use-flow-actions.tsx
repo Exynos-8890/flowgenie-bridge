@@ -306,9 +306,17 @@ export function useFlowActions(
         // 保存当前节点状态的快照
         const currentNodes = [...nodes];
         
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 记录开始时间
+        const startTime = performance.now();
         
+        // 处理器执行
         const result = await executeProcessor(currentNodes, edges, processorId);
+        
+        // 计算耗时（毫秒）
+        const endTime = performance.now();
+        const elapsedTime = endTime - startTime;
+        // 格式化为秒，保留两位小数
+        const elapsedSeconds = (elapsedTime / 1000).toFixed(3);
         
         // 只更新处理器相关的节点，保留用户在处理过程中对其他节点的修改
         setNodes(prevNodes => {
@@ -342,7 +350,7 @@ export function useFlowActions(
         
         toast({
           title: "Processing Complete",
-          description: "Your data has been successfully processed.",
+          description: `${elapsedSeconds} seconds elapsed.`,
         });
       } catch (error) {
         console.error('Error executing processor:', error);
@@ -354,7 +362,7 @@ export function useFlowActions(
         });
       }
     },
-    [nodes, edges, setNodes, setEdges, handleAutoSaveFlow, userId, currentFlowId]
+    [nodes, edges, setNodes, setEdges, handleAutoSaveFlow, userId, currentFlowId, supabase]
   );
 
   // 添加导出Flow功能
