@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Node, Edge, Connection, addEdge } from '@xyflow/react';
 import { toast } from '@/components/ui/use-toast';
@@ -8,7 +7,9 @@ export function useFlowInteractions(
   nodes: Node[],
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>,
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
-  onFlowChange: () => void
+  onFlowChange: () => void,
+  // 增加setSelectedEdge参数
+  setSelectedEdge?: React.Dispatch<React.SetStateAction<Edge | null>>
 ) {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
@@ -96,10 +97,13 @@ export function useFlowInteractions(
 
   const onEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
-      // Implement edge selection logic
+      // 设置选中的边
+      if (setSelectedEdge) {
+        setSelectedEdge(edge);
+      }
       return edge;
     },
-    []
+    [setSelectedEdge]
   );
 
   const handleUpdateNode = useCallback(

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
@@ -98,7 +97,8 @@ const Flowsmith = () => {
     nodes, 
     setNodes, 
     setEdges,
-    handleAutoSaveFlow // Pass auto-save function to the interactions hook
+    handleAutoSaveFlow, // Pass auto-save function to the interactions hook
+    setSelectedEdge  // 添加setSelectedEdge参数
   );
 
   const onDrop = useCallback(
